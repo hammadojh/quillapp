@@ -8,11 +8,11 @@ function buildSystem(uiLang: "ar" | "en") {
     ? "Default conversation language: Arabic. Conduct the entire interview in clear, natural Modern Standard Arabic unless the expert switches to English."
     : "Default conversation language: English. Conduct the interview in English unless the expert switches to Arabic.";
   const finalAsk = isAr
-    ? 'Just BEFORE finishing, ask exactly ONE final question (in the conversation language): "هل تريد المقال النهائي بالعربية أم بالإنجليزية؟ / Do you want the final article in Arabic or English?" Wait for their answer.'
-    : 'Just BEFORE finishing, ask exactly ONE final question: "Do you want the final article in Arabic or English? / هل تريد المقال النهائي بالعربية أم بالإنجليزية؟" Wait for their answer.';
+    ? 'When you have enough material, ask ONE question (in the conversation language): "هل تريد المقال بالعربية أم بالإنجليزية؟" Wait for the answer. Then ask: "وما الطول المفضّل؟ قصير (~300 كلمة)، متوسط (~600 كلمة)، أم طويل (~1000 كلمة)؟" Wait. Then ask: "هل تريد توليد المقال الآن، أم لديك المزيد لإضافته؟" Wait.'
+    : 'When you have enough material, ask ONE question: "Do you want the final article in Arabic or English?" Wait for the answer. Then ask: "And what length — short (~300 words), medium (~600 words), or long (~1000 words)?" Wait. Then ask: "Want me to generate the article now, or do you have more to add?" Wait.';
   const doneLine = isAr
-    ? 'Once they answer, reply with EXACTLY: "ممتاز — لديّ ما يلزم. اضغط **توليد المقال** في الأعلى متى كنت جاهزاً." Then stop asking.'
-    : 'Once they answer, reply with EXACTLY: "Perfect — I have what I need. Click **Generate post** above whenever you\'re ready." Then stop asking.';
+    ? 'If they want more, continue interviewing. If they confirm they are ready to generate, reply with EXACTLY this single line and nothing else: [[GENERATE]]'
+    : 'If they want to add more, continue interviewing. If they confirm they are ready to generate, reply with EXACTLY this single line and nothing else: [[GENERATE]]';
 
   return `You are an editorial interviewer helping a domain expert turn their knowledge into a great long-form blog post.
 

@@ -86,13 +86,14 @@ const GEN_SYSTEM = `You are an accomplished editorial writer who turns expert in
 Rules:
 - Output ONLY the article in clean Markdown, no preamble, no commentary.
 - Language: write the entire article in the language the expert chose near the end of the interview (Arabic or English). If unclear, follow the DEFAULT_LANGUAGE noted in the prompt. Headings, body, and share blurb must all be in that one language.
+- Length: honor the length the expert chose near the end of the interview. Map short → 250–400 words & 2–3 H2 sections; medium → 500–750 words & 3–4 H2; long → 900–1200 words & 4–6 H2. If the expert did not state a preference, default to short. The TARGET_LENGTH header (if present) overrides.
 - Start with a # Title that is specific and intriguing (not generic).
 - Open with a 1–2 sentence hook that grabs the reader.
-- Use ## H2 sections with concrete substance from the interview. Number of sections scales with TARGET_LENGTH.
+- Use ## H2 sections with concrete substance from the interview.
 - Include specific examples, stories, numbers, or analogies the expert mentioned.
 - Voice: confident, warm, first-person from the expert, no fluffy filler.
 - End with a brief conclusion + a one-line social share blurb prefixed exactly with: > **Share blurb:**
-- Honor the TARGET_LENGTH word range stated in the prompt. Be concise — never pad to hit the upper bound.`;
+- Be concise — never pad to hit the upper bound of the chosen length.`;
 
 const LENGTH_RANGES: Record<"short" | "medium" | "long", { words: string; sections: string }> = {
   short: { words: "250–400 words", sections: "2–3 short H2 sections" },
@@ -134,11 +135,11 @@ export const generateBlogPost = createServerFn({ method: "POST" })
       .join("\n\n");
 
     const defaultLang = data.language === "en" ? "English" : "Arabic";
-    const length = data.length ?? "short";
-    const range = LENGTH_RANGES[length];
+    const lengthOverride = data.length ? LENGTH_RANGES[data.length] : null;
     const header =
       `DEFAULT_LANGUAGE: ${defaultLang} (use this only if the expert never stated a preference in the interview)\n` +
-      `TARGET_LENGTH: ${range.words}, ${range.sections}.\n\n`;
+      (lengthOverride ? `TARGET_LENGTH: ${lengthOverride.words}, ${lengthOverride.sections}.\n` : "") +
+      `\n`;
     const prompt = data.tweak
       ? `${header}Rewrite this existing blog post applying this feedback: "${data.tweak}". Keep the same language as the original unless the feedback explicitly requests a different one.\n\nORIGINAL POST:\n${post.content}\n\nORIGINAL INTERVIEW:\n${transcript}`
       : `${header}Write the blog post based on this interview transcript:\n\n${transcript}`;

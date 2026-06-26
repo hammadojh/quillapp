@@ -29,6 +29,7 @@ export const Route = createFileRoute("/api/speak")({
             voice: "alloy",
             response_format: "pcm",
             stream_format: "sse",
+            speed: 1.25,
             instructions,
           }),
         });
