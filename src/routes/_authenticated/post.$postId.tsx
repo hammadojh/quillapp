@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Sparkles, Copy, RefreshCw, Trash2, Send } from "lucide-react";
+import { ArrowLeft, Sparkles, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, VolumeX, Share2, Linkedin, Twitter } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/post/$postId")({
