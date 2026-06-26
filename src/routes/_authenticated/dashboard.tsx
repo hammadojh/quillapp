@@ -78,11 +78,11 @@ function Dashboard() {
           ) : posts && posts.length > 0 ? (
             <ul className="divide-y divide-ink/10 border-y border-ink/10">
               {posts.map((p) => (
-                <li key={p.id} className="group flex items-center justify-between gap-4 py-5">
+                <li key={p.id} className="group flex items-center justify-between gap-3 py-5">
                   <Link
                     to="/post/$postId"
                     params={{ postId: p.id }}
-                    className="flex flex-1 items-start gap-4"
+                    className="flex min-w-0 flex-1 items-start gap-4"
                   >
                     <FileText className="mt-1 h-5 w-5 shrink-0 text-ink/40" strokeWidth={1.5} />
                     <div className="min-w-0 flex-1">
