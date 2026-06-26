@@ -131,17 +131,18 @@ function InterviewView({
   });
 
   // ---- Voice mode ----
-  const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(true);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const spokenIdsRef = useRef<Set<string>>(new Set());
   const audioCtxRef = useRef<AudioContext | null>(null);
   const speakAbortRef = useRef<AbortController | null>(null);
-  const [speaking, setSpeaking] = useState(false);
-  const [loadingVoice, setLoadingVoice] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const playedIdsRef = useRef<Set<string>>(new Set());
 
   const stopSpeaking = () => {
     speakAbortRef.current?.abort();
@@ -150,22 +151,15 @@ function InterviewView({
       audioCtxRef.current.close().catch(() => {});
       audioCtxRef.current = null;
     }
-    setSpeaking(false);
-    setLoadingVoice(false);
+    setPlayingId(null);
+    setLoadingId(null);
   };
 
-  // Speak each new assistant message once via Lovable AI TTS when streaming completes.
-  useEffect(() => {
-    if (!voiceMode || status !== "ready") return;
+  const playMessage = (id: string, text: string) => {
     if (typeof window === "undefined") return;
-    const last = messages.at(-1);
-    if (!last || last.role !== "assistant") return;
-    if (spokenIdsRef.current.has(last.id)) return;
-    const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
-    if (!text) return;
-    spokenIdsRef.current.add(last.id);
+    if (!text.trim()) return;
     stopSpeaking();
-    setLoadingVoice(true);
+    setLoadingId(id);
     const ac = new AbortController();
     speakAbortRef.current = ac;
     (async () => {
@@ -198,15 +192,8 @@ function InterviewView({
         playhead += buffer.duration;
         if (!started) {
           started = true;
-          setLoadingVoice(false);
-          setSpeaking(true);
-          const endAt = playhead;
-          const tick = () => {
-            if (ac.signal.aborted) return;
-            if (ctx.currentTime >= endAt - 0.05) setSpeaking(false);
-            else setTimeout(tick, 200);
-          };
-          // schedule when finished
+          setLoadingId(null);
+          setPlayingId(id);
         }
       };
       try {
@@ -235,22 +222,20 @@ function InterviewView({
           if (done) break;
           parser.feed(value);
         }
-        // Stop "speaking" once scheduled audio finishes
         const remaining = Math.max(0, (playhead - ctx.currentTime) * 1000);
         setTimeout(() => {
-          if (!ac.signal.aborted) setSpeaking(false);
+          if (ac.signal.aborted) return;
+          playedIdsRef.current.add(id);
+          setPlayingId((curr) => (curr === id ? null : curr));
         }, remaining + 100);
       } catch {
         if (!ac.signal.aborted) {
-          setLoadingVoice(false);
-          setSpeaking(false);
+          setLoadingId(null);
+          setPlayingId(null);
         }
       }
     })();
-    return () => {
-      ac.abort();
-    };
-  }, [messages, status, voiceMode, lang]);
+  };
 
   useEffect(() => {
     return () => {
