@@ -115,6 +115,113 @@ function InterviewView({
     onError: (e) => toast.error(e.message || "Chat error"),
   });
 
+  // ---- Voice mode ----
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const spokenIdsRef = useRef<Set<string>>(new Set());
+
+  // Speak each new assistant message once when streaming completes.
+  useEffect(() => {
+    if (!voiceMode || status !== "ready") return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const last = messages.at(-1);
+    if (!last || last.role !== "assistant") return;
+    if (spokenIdsRef.current.has(last.id)) return;
+    const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
+    if (!text) return;
+    spokenIdsRef.current.add(last.id);
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.02;
+    utter.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }, [messages, status, voiceMode]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      streamRef.current = stream;
+      const mime = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      rec.onstop = async () => {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
+        if (blob.size < 2048) {
+          toast.error("That recording was empty — try again.");
+          return;
+        }
+        setTranscribing(true);
+        try {
+          const fd = new FormData();
+          const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+          fd.append("file", blob, `recording.${ext}`);
+          const r = await fetch("/api/transcribe", { method: "POST", body: fd });
+          if (!r.ok) throw new Error(await r.text());
+          const { text } = (await r.json()) as { text: string };
+          const clean = text.trim();
+          if (!clean) {
+            toast.error("Didn't catch that — try again.");
+            return;
+          }
+          await sendMessage({ text: clean });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Transcription failed");
+        } finally {
+          setTranscribing(false);
+        }
+      };
+      rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+    } catch {
+      toast.error("Microphone access denied");
+    }
+  };
+
+  const stopRecording = () => {
+    setRecording(false);
+    recorderRef.current?.stop();
+    recorderRef.current = null;
+  };
+
+  const toggleVoiceMode = () => {
+    setVoiceMode((v) => {
+      const next = !v;
+      if (!next && typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (!next && recording) stopRecording();
+      return next;
+    });
+  };
+
   // Seed an opening question if empty
   const seededRef = useRef(false);
   useEffect(() => {
@@ -171,14 +278,25 @@ function InterviewView({
           <p className="text-xs uppercase tracking-widest text-ink/40">Interview</p>
           <h1 className="font-serif text-2xl">Tell me about your topic</h1>
         </div>
-        <button
-          onClick={generate}
-          disabled={!canGenerate || generating}
-          className="flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
-        >
-          <Sparkles className="h-4 w-4" />
-          {generating ? "Writing…" : "Generate post"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleVoiceMode}
+            className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${voiceMode ? "border-brand bg-brand text-white" : "border-ink/20 text-ink/70 hover:bg-ink/5"}`}
+            aria-pressed={voiceMode}
+            title={voiceMode ? "Voice mode on" : "Voice mode off"}
+          >
+            {voiceMode ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            Voice
+          </button>
+          <button
+            onClick={generate}
+            disabled={!canGenerate || generating}
+            className="flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+          >
+            <Sparkles className="h-4 w-4" />
+            {generating ? "Writing…" : "Generate post"}
+          </button>
+        </div>
       </div>
 
       <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto py-6">
@@ -212,6 +330,27 @@ function InterviewView({
         )}
       </div>
 
+      {voiceMode ? (
+        <div className="flex flex-col items-center gap-3 border-t border-ink/10 py-6">
+          <button
+            onClick={recording ? stopRecording : startRecording}
+            disabled={transcribing || status === "submitted" || status === "streaming"}
+            className={`flex h-20 w-20 items-center justify-center rounded-full text-white shadow-lg transition disabled:opacity-40 ${recording ? "bg-red-600 animate-pulse" : "bg-brand hover:opacity-90"}`}
+            aria-label={recording ? "Stop recording" : "Start recording"}
+          >
+            {recording ? <Square className="h-7 w-7" /> : <Mic className="h-8 w-8" />}
+          </button>
+          <p className="text-sm text-ink/60">
+            {transcribing
+              ? "Transcribing…"
+              : recording
+                ? "Listening — tap to stop"
+                : status === "streaming" || status === "submitted"
+                  ? "Quill is thinking…"
+                  : "Tap the mic and answer out loud"}
+          </p>
+        </div>
+      ) : (
       <form onSubmit={submit} className="flex items-end gap-2 border-t border-ink/10 py-4">
         <textarea
           value={input}
@@ -236,6 +375,7 @@ function InterviewView({
           <Send className="h-4 w-4" />
         </button>
       </form>
+      )}
     </div>
   );
 }
