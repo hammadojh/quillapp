@@ -7,34 +7,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Sparkles, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, VolumeX, Share2, Linkedin, Twitter } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useT, LangToggle, type Lang } from "@/lib/i18n";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/post/$postId")({
   head: () => ({ meta: [{ title: "Post — Quill" }] }),
   component: PostPage,
 });
 
-type LengthValue = "short" | "medium" | "long";
-function LengthSelect({ value, onChange }: { value: LengthValue; onChange: (v: LengthValue) => void }) {
-  const { t } = useT();
-  return (
-    <label className="flex items-center gap-1.5 rounded-full border border-ink/20 px-2.5 py-1.5 text-xs text-ink/70">
-      <span className="hidden sm:inline">{t("post.length")}:</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as LengthValue)}
-        className="bg-transparent text-xs font-medium text-ink focus:outline-none"
-        aria-label={t("post.length")}
-      >
-        <option value="short">{t("post.length.short")} · {t("post.length.short.hint")}</option>
-        <option value="medium">{t("post.length.medium")} · {t("post.length.medium.hint")}</option>
-        <option value="long">{t("post.length.long")} · {t("post.length.long.hint")}</option>
-      </select>
-    </label>
-  );
-}
+const GEN_SENTINEL = "[[GENERATE]]";
 
 function PostPage() {
   const { t } = useT();
