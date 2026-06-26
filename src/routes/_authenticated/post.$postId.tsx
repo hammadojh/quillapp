@@ -566,7 +566,6 @@ function GeneratedView({
   const [content, setContent] = useState(post.content);
   const [tweak, setTweak] = useState("");
   const [busy, setBusy] = useState(false);
-  const [length, setLength] = useState<"short" | "medium" | "long">("short");
 
   useEffect(() => {
     setTitle(post.title);
@@ -596,7 +595,7 @@ function GeneratedView({
     if (!tweak.trim()) return;
     setBusy(true);
     try {
-      await generateFn({ data: { id: post.id, tweak, language: lang, length } });
+      await generateFn({ data: { id: post.id, tweak, language: lang } });
       toast.success(t("toast.rewritten"));
       setTweak("");
       onUpdated();
@@ -687,7 +686,6 @@ function GeneratedView({
             placeholder={t("post.tweak.placeholder")}
             className="flex-1 rounded-md border border-ink/15 bg-paper px-3 py-2 focus:border-brand focus:outline-none"
           />
-          <LengthSelect value={length} onChange={setLength} />
           <button
             onClick={regenerate}
             disabled={!tweak.trim() || busy}
