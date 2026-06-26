@@ -439,6 +439,26 @@ function GeneratedView({
   // strip the leading "# Title" since we render title separately
   const body = content.replace(/^#\s+.+\n+/, "");
 
+  // Build a punchy social blurb from the first non-heading paragraph.
+  const blurb = useMemo(() => {
+    const first = body
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .find((p) => p && !p.startsWith("#") && !p.startsWith(">")) ?? "";
+    const plain = first.replace(/[*_`#>\[\]()]/g, "").trim();
+    return plain.length > 220 ? plain.slice(0, 217).trimEnd() + "…" : plain;
+  }, [body]);
+
+  const tweetText = `${title}\n\n${blurb}`.slice(0, 270);
+  const linkedinText = `${title}\n\n${blurb}\n\n— Written with Quill`;
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+  const liUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(linkedinText)}`;
+
+  const copyForLinkedin = async () => {
+    await navigator.clipboard.writeText(linkedinText);
+    toast.success("Copied — paste into LinkedIn");
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
       <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -502,6 +522,47 @@ function GeneratedView({
           >
             {busy ? "Rewriting…" : "Rewrite"}
           </button>
+        </div>
+      </div>
+
+      <div className="mt-6 overflow-hidden rounded-2xl border border-brand/20 bg-brand/5">
+        <div className="flex items-start gap-3 p-5">
+          <Share2 className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+          <div className="flex-1">
+            <h3 className="font-serif text-xl text-ink">Now share what you wrote.</h3>
+            <p className="mt-1 text-sm text-ink/70">
+              Your expertise only helps people who see it. Post it where your audience lives — it takes 30 seconds.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href={xUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90"
+              >
+                <Twitter className="h-4 w-4" /> Post on X
+              </a>
+              <a
+                href={liUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+              >
+                <Linkedin className="h-4 w-4" /> Share on LinkedIn
+              </a>
+              <button
+                onClick={copyForLinkedin}
+                className="flex items-center gap-2 rounded-full border border-ink/20 bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
+              >
+                <Copy className="h-4 w-4" /> Copy social blurb
+              </button>
+            </div>
+            {blurb && (
+              <p className="mt-4 rounded-md border border-ink/10 bg-white/70 p-3 text-sm italic text-ink/70">
+                "{blurb}"
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </main>
