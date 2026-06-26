@@ -449,9 +449,16 @@ function InterviewView({
                 ? t("post.voice.listening")
                 : status === "streaming" || status === "submitted"
                   ? t("post.voice.thinking")
-                  : speaking
-                    ? (lang === "ar" ? "يتحدث…" : "Speaking…")
-                    : t("post.voice.idle")}
+                  : loadingVoice
+                    ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-ink/20 border-t-brand" />
+                          {lang === "ar" ? "جارٍ تجهيز الصوت…" : "Preparing voice…"}
+                        </span>
+                      )
+                    : speaking
+                      ? (lang === "ar" ? "يتحدث…" : "Speaking…")
+                      : t("post.voice.idle")}
           </p>
         </div>
       ) : (
