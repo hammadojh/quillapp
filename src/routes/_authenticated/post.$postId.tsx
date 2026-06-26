@@ -391,7 +391,9 @@ function InterviewView({
                 ? t("post.voice.listening")
                 : status === "streaming" || status === "submitted"
                   ? t("post.voice.thinking")
-                  : t("post.voice.idle")}
+                  : speaking
+                    ? (lang === "ar" ? "يتحدث…" : "Speaking…")
+                    : t("post.voice.idle")}
           </p>
         </div>
       ) : (
