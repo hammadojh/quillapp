@@ -16,6 +16,26 @@ export const Route = createFileRoute("/_authenticated/post/$postId")({
   component: PostPage,
 });
 
+type LengthValue = "short" | "medium" | "long";
+function LengthSelect({ value, onChange }: { value: LengthValue; onChange: (v: LengthValue) => void }) {
+  const { t } = useT();
+  return (
+    <label className="flex items-center gap-1.5 rounded-full border border-ink/20 px-2.5 py-1.5 text-xs text-ink/70">
+      <span className="hidden sm:inline">{t("post.length")}:</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as LengthValue)}
+        className="bg-transparent text-xs font-medium text-ink focus:outline-none"
+        aria-label={t("post.length")}
+      >
+        <option value="short">{t("post.length.short")} · {t("post.length.short.hint")}</option>
+        <option value="medium">{t("post.length.medium")} · {t("post.length.medium.hint")}</option>
+        <option value="long">{t("post.length.long")} · {t("post.length.long.hint")}</option>
+      </select>
+    </label>
+  );
+}
+
 function PostPage() {
   const { t } = useT();
   const { postId } = Route.useParams();
@@ -344,6 +364,7 @@ function InterviewView({
 
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [length, setLength] = useState<"short" | "medium" | "long">("short");
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -360,7 +381,7 @@ function InterviewView({
   const generate = async () => {
     setGenerating(true);
     try {
-      await generateFn({ data: { id: postId, language: lang } });
+      await generateFn({ data: { id: postId, language: lang, length } });
       toast.success(t("toast.ready"));
       onGenerated();
     } catch (e) {
@@ -381,6 +402,7 @@ function InterviewView({
           <h1 className="truncate font-serif text-xl sm:text-2xl">{t("post.interview.title")}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <LengthSelect value={length} onChange={setLength} />
           <button
             onClick={toggleVoiceMode}
             className={`flex h-10 w-10 items-center justify-center rounded-full border transition sm:h-auto sm:w-auto sm:px-3 sm:py-2 ${voiceMode ? "border-brand bg-brand text-white" : "border-ink/20 text-ink/70 hover:bg-ink/5"}`}
@@ -508,6 +530,7 @@ function GeneratedView({
   const [content, setContent] = useState(post.content);
   const [tweak, setTweak] = useState("");
   const [busy, setBusy] = useState(false);
+  const [length, setLength] = useState<"short" | "medium" | "long">("short");
 
   useEffect(() => {
     setTitle(post.title);
@@ -537,7 +560,7 @@ function GeneratedView({
     if (!tweak.trim()) return;
     setBusy(true);
     try {
-      await generateFn({ data: { id: post.id, tweak, language: lang } });
+      await generateFn({ data: { id: post.id, tweak, language: lang, length } });
       toast.success(t("toast.rewritten"));
       setTweak("");
       onUpdated();
@@ -628,6 +651,7 @@ function GeneratedView({
             placeholder={t("post.tweak.placeholder")}
             className="flex-1 rounded-md border border-ink/15 bg-paper px-3 py-2 focus:border-brand focus:outline-none"
           />
+          <LengthSelect value={length} onChange={setLength} />
           <button
             onClick={regenerate}
             disabled={!tweak.trim() || busy}
