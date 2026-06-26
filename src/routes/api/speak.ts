@@ -27,7 +27,8 @@ export const Route = createFileRoute("/api/speak")({
             model: "openai/gpt-4o-mini-tts",
             input: trimmed,
             voice: "alloy",
-            response_format: "mp3",
+            response_format: "pcm",
+            stream_format: "sse",
             instructions,
           }),
         });
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/api/speak")({
           return new Response(msg || "TTS failed", { status: res.status });
         }
         return new Response(res.body, {
-          headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" },
+          headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-store" },
         });
       },
     },
