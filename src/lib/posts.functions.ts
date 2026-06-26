@@ -5,13 +5,14 @@ import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 import { generateText } from "ai";
 
 // posts table types are not in generated types yet; use loose typing locally.
+import type { Json } from "@/integrations/supabase/types";
 type PostRow = {
   id: string;
   user_id: string;
   title: string;
   content: string;
   status: "interviewing" | "generated";
-  interview_messages: unknown;
+  interview_messages: Json;
   created_at: string;
   updated_at: string;
 };
