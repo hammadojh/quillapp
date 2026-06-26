@@ -172,3 +172,5 @@
   & li { margin: 0.4rem 0; }
   & strong { color: var(--ink); }
 }
+
+html, body { max-width: 100%; overflow-x: hidden; }
