@@ -4,41 +4,51 @@ import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 import { generateText } from "ai";
 
+// posts table types are not in generated types yet; use loose typing locally.
+type PostRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  status: "interviewing" | "generated";
+  interview_messages: unknown;
+  created_at: string;
+  updated_at: string;
+};
+const tbl = (sb: any) => sb.from("posts") as any;
+
 export const listPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("posts")
+    const { data, error } = await tbl(context.supabase)
       .select("id, title, status, updated_at, created_at")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return (data ?? []) as Array<Pick<PostRow, "id" | "title" | "status" | "updated_at" | "created_at">>;
   });
 
 export const getPost = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: post, error } = await context.supabase
-      .from("posts")
+    const { data: post, error } = await tbl(context.supabase)
       .select("*")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!post) throw new Error("Post not found");
-    return post;
+    return post as PostRow;
   });
 
 export const createPost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("posts")
+    const { data, error } = await tbl(context.supabase)
       .insert({ user_id: context.userId })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    return data;
+    return data as { id: string };
   });
 
 const UpdateInput = z.object({
@@ -54,8 +64,7 @@ export const updatePost = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => UpdateInput.parse(input))
   .handler(async ({ data, context }) => {
     const { id, ...patch } = data;
-    const { error } = await context.supabase
-      .from("posts")
+    const { error } = await tbl(context.supabase)
       .update(patch)
       .eq("id", id);
     if (error) throw new Error(error.message);
@@ -66,7 +75,7 @@ export const deletePost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("posts").delete().eq("id", data.id);
+    const { error } = await tbl(context.supabase).delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -92,8 +101,7 @@ export const generateBlogPost = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
-    const { data: post, error } = await context.supabase
-      .from("posts")
+    const { data: post, error } = await tbl(context.supabase)
       .select("interview_messages, content")
       .eq("id", data.id)
       .maybeSingle();
@@ -125,8 +133,7 @@ export const generateBlogPost = createServerFn({ method: "POST" })
     const titleMatch = md.match(/^#\s+(.+)$/m);
     const title = titleMatch ? titleMatch[1].trim().slice(0, 200) : "Untitled draft";
 
-    const { error: updateError } = await context.supabase
-      .from("posts")
+    const { error: updateError } = await tbl(context.supabase)
       .update({ content: md, title, status: "generated" })
       .eq("id", data.id);
     if (updateError) throw new Error(updateError.message);
