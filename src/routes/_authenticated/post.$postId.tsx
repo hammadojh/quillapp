@@ -9,6 +9,7 @@ import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.f
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Sparkles, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, VolumeX, Share2, Linkedin, Twitter } from "lucide-react";
 import { toast } from "sonner";
+import { useT, LangToggle, type Lang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/post/$postId")({
   head: () => ({ meta: [{ title: "Post — Quill" }] }),
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/_authenticated/post/$postId")({
 });
 
 function PostPage() {
+  const { t } = useT();
   const { postId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -31,28 +33,32 @@ function PostPage() {
 
   if (isLoading || !post) {
     return (
-      <div className="min-h-screen bg-paper p-10 text-ink/50">Loading…</div>
+      <div className="min-h-screen bg-paper p-10 text-ink/50">…</div>
     );
   }
 
   return (
     <div className="min-h-screen bg-paper text-ink">
       <header className="border-b border-ink/10">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-          <Link to="/dashboard" className="flex items-center gap-2 text-sm text-ink/60 hover:text-ink">
-            <ArrowLeft className="h-4 w-4" /> Your posts
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <Link to="/dashboard" className="flex items-center gap-2 text-sm text-ink/70 hover:text-ink">
+            <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> <span className="truncate">{t("post.back")}</span>
           </Link>
-          <button
-            onClick={async () => {
-              if (!confirm("Delete this post?")) return;
-              await deleteFn({ data: { id: postId } });
-              qc.invalidateQueries({ queryKey: ["posts"] });
-              navigate({ to: "/dashboard" });
-            }}
-            className="flex items-center gap-2 text-sm text-ink/50 hover:text-ink"
-          >
-            <Trash2 className="h-4 w-4" /> Delete
-          </button>
+          <div className="flex items-center gap-2">
+            <LangToggle />
+            <button
+              onClick={async () => {
+                if (!confirm(t("post.delete.confirm"))) return;
+                await deleteFn({ data: { id: postId } });
+                qc.invalidateQueries({ queryKey: ["posts"] });
+                navigate({ to: "/dashboard" });
+              }}
+              className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink/70 hover:bg-ink/5"
+              aria-label={t("post.delete")}
+            >
+              <Trash2 className="h-4 w-4" /> <span className="hidden sm:inline">{t("post.delete")}</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -89,10 +95,16 @@ function InterviewView({
   generateFn: ReturnType<typeof useServerFn<typeof generateBlogPost>>;
   onGenerated: () => void;
 }) {
+  const { t, lang } = useT();
+  const langRef = useRef<Lang>(lang);
+  useEffect(() => {
+    langRef.current = lang;
+  }, [lang]);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
+        body: () => ({ language: langRef.current }),
         fetch: async (input, init) => {
           const { data } = await supabase.auth.getSession();
           const headers = new Headers(init?.headers);
@@ -135,11 +147,16 @@ function InterviewView({
     if (!text) return;
     spokenIdsRef.current.add(last.id);
     const utter = new SpeechSynthesisUtterance(text);
+    const wantArabic = lang === "ar" || /[\u0600-\u06FF]/.test(text);
+    utter.lang = wantArabic ? "ar-SA" : "en-US";
+    const voices = window.speechSynthesis.getVoices();
+    const match = voices.find((v) => v.lang.toLowerCase().startsWith(wantArabic ? "ar" : "en"));
+    if (match) utter.voice = match;
     utter.rate = 1.02;
     utter.pitch = 1;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utter);
-  }, [messages, status, voiceMode]);
+  }, [messages, status, voiceMode, lang]);
 
   useEffect(() => {
     return () => {
@@ -174,7 +191,7 @@ function InterviewView({
         streamRef.current = null;
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
         if (blob.size < 2048) {
-          toast.error("That recording was empty — try again.");
+          toast.error(lang === "ar" ? "التسجيل فارغ — حاول مرة أخرى." : "That recording was empty — try again.");
           return;
         }
         setTranscribing(true);
@@ -187,12 +204,12 @@ function InterviewView({
           const { text } = (await r.json()) as { text: string };
           const clean = text.trim();
           if (!clean) {
-            toast.error("Didn't catch that — try again.");
+            toast.error(lang === "ar" ? "لم أسمع شيئاً — حاول مرة أخرى." : "Didn't catch that — try again.");
             return;
           }
           await sendMessage({ text: clean });
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Transcription failed");
+          toast.error(err instanceof Error ? err.message : (lang === "ar" ? "فشل النسخ" : "Transcription failed"));
         } finally {
           setTranscribing(false);
         }
@@ -201,7 +218,7 @@ function InterviewView({
       recorderRef.current = rec;
       setRecording(true);
     } catch {
-      toast.error("Microphone access denied");
+      toast.error(lang === "ar" ? "تم رفض الوصول إلى المايكروفون" : "Microphone access denied");
     }
   };
 
@@ -228,9 +245,9 @@ function InterviewView({
     if (seededRef.current) return;
     if (messages.length === 0 && status === "ready") {
       seededRef.current = true;
-      sendMessage({ text: "Let's begin." });
+      sendMessage({ text: lang === "ar" ? "لنبدأ." : "Let's begin." });
     }
-  }, [messages.length, status, sendMessage]);
+  }, [messages.length, status, sendMessage, lang]);
 
   // Persist messages whenever they change after a turn
   useEffect(() => {
@@ -258,8 +275,8 @@ function InterviewView({
   const generate = async () => {
     setGenerating(true);
     try {
-      await generateFn({ data: { id: postId } });
-      toast.success("Your post is ready");
+      await generateFn({ data: { id: postId, language: lang } });
+      toast.success(t("toast.ready"));
       onGenerated();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not generate");
@@ -272,29 +289,29 @@ function InterviewView({
   const canGenerate = exchangeCount >= 3;
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-65px)] max-w-3xl flex-col px-6">
-      <div className="flex items-center justify-between border-b border-ink/10 py-4">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-ink/40">Interview</p>
-          <h1 className="font-serif text-2xl">Tell me about your topic</h1>
+    <div className="mx-auto flex h-[calc(100vh-65px)] max-w-3xl flex-col px-4 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 py-3 sm:py-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-widest text-ink/40 sm:text-xs">{t("post.interview.label")}</p>
+          <h1 className="truncate font-serif text-xl sm:text-2xl">{t("post.interview.title")}</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             onClick={toggleVoiceMode}
-            className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${voiceMode ? "border-brand bg-brand text-white" : "border-ink/20 text-ink/70 hover:bg-ink/5"}`}
+            className={`flex h-10 w-10 items-center justify-center rounded-full border transition sm:h-auto sm:w-auto sm:px-3 sm:py-2 ${voiceMode ? "border-brand bg-brand text-white" : "border-ink/20 text-ink/70 hover:bg-ink/5"}`}
             aria-pressed={voiceMode}
-            title={voiceMode ? "Voice mode on" : "Voice mode off"}
+            title={t("post.voice")}
           >
             {voiceMode ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            Voice
+            <span className="hidden sm:ms-2 sm:inline sm:text-xs sm:font-medium">{t("post.voice")}</span>
           </button>
           <button
             onClick={generate}
             disabled={!canGenerate || generating}
-            className="flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+            className="flex items-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40 sm:px-5"
           >
             <Sparkles className="h-4 w-4" />
-            {generating ? "Writing…" : "Generate post"}
+            <span>{generating ? t("post.generating") : t("post.generate")}</span>
           </button>
         </div>
       </div>
@@ -302,7 +319,7 @@ function InterviewView({
       <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto py-6">
         {messages.length === 0 && (
           <p className="text-center font-serif text-xl italic text-ink/40">
-            Tell me what you want to teach the world today.
+            {t("post.intro")}
           </p>
         )}
         {messages.map((m) => {
@@ -312,7 +329,7 @@ function InterviewView({
           if (m.role === "user") {
             return (
               <div key={m.id} className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-ink px-4 py-3 text-paper">
+                <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-ink px-4 py-3 text-paper rtl:rounded-bl-sm rtl:rounded-br-2xl">
                   {text}
                 </div>
               </div>
@@ -320,13 +337,13 @@ function InterviewView({
           }
           return (
             <div key={m.id} className="max-w-[90%]">
-              <div className="text-xs uppercase tracking-widest text-brand/80">Quill</div>
+              <div className="text-xs uppercase tracking-widest text-brand/80">{t("brand")}</div>
               <div className="mt-1 whitespace-pre-wrap font-serif text-lg leading-relaxed">{text}</div>
             </div>
           );
         })}
         {(status === "submitted" || status === "streaming") && messages.at(-1)?.role === "user" && (
-          <div className="font-serif italic text-ink/40">Thinking…</div>
+          <div className="font-serif italic text-ink/40">{t("post.thinking")}</div>
         )}
       </div>
 
@@ -336,18 +353,18 @@ function InterviewView({
             onClick={recording ? stopRecording : startRecording}
             disabled={transcribing || status === "submitted" || status === "streaming"}
             className={`flex h-20 w-20 items-center justify-center rounded-full text-white shadow-lg transition disabled:opacity-40 ${recording ? "bg-red-600 animate-pulse" : "bg-brand hover:opacity-90"}`}
-            aria-label={recording ? "Stop recording" : "Start recording"}
+            aria-label={recording ? t("post.voice.listening") : t("post.voice.idle")}
           >
             {recording ? <Square className="h-7 w-7" /> : <Mic className="h-8 w-8" />}
           </button>
           <p className="text-sm text-ink/60">
             {transcribing
-              ? "Transcribing…"
+              ? t("post.voice.transcribing")
               : recording
-                ? "Listening — tap to stop"
+                ? t("post.voice.listening")
                 : status === "streaming" || status === "submitted"
-                  ? "Quill is thinking…"
-                  : "Tap the mic and answer out loud"}
+                  ? t("post.voice.thinking")
+                  : t("post.voice.idle")}
           </p>
         </div>
       ) : (
@@ -362,7 +379,7 @@ function InterviewView({
             }
           }}
           rows={2}
-          placeholder="Type your answer…"
+          placeholder={t("post.placeholder")}
           className="flex-1 resize-none rounded-xl border border-ink/15 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-brand focus:outline-none"
           autoFocus
         />
@@ -370,9 +387,9 @@ function InterviewView({
           type="submit"
           disabled={!input.trim() || status === "submitted" || status === "streaming"}
           className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-paper disabled:opacity-40"
-          aria-label="Send"
+          aria-label={t("post.send")}
         >
-          <Send className="h-4 w-4" />
+          <Send className="h-4 w-4 rtl:rotate-180" />
         </button>
       </form>
       )}
@@ -391,6 +408,7 @@ function GeneratedView({
   updateFn: ReturnType<typeof useServerFn<typeof updatePost>>;
   generateFn: ReturnType<typeof useServerFn<typeof generateBlogPost>>;
 }) {
+  const { t, lang } = useT();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(post.title);
   const [content, setContent] = useState(post.content);
@@ -406,7 +424,7 @@ function GeneratedView({
     setBusy(true);
     try {
       await updateFn({ data: { id: post.id, title, content } });
-      toast.success("Saved");
+      toast.success(t("toast.saved"));
       setEditing(false);
       onUpdated();
     } catch (e) {
@@ -418,15 +436,15 @@ function GeneratedView({
 
   const copy = async () => {
     await navigator.clipboard.writeText(`# ${title}\n\n${content.replace(/^#\s+.+\n+/, "")}`);
-    toast.success("Copied as markdown");
+    toast.success(t("toast.copied.md"));
   };
 
   const regenerate = async () => {
     if (!tweak.trim()) return;
     setBusy(true);
     try {
-      await generateFn({ data: { id: post.id, tweak } });
-      toast.success("Rewritten");
+      await generateFn({ data: { id: post.id, tweak, language: lang } });
+      toast.success(t("toast.rewritten"));
       setTweak("");
       onUpdated();
     } catch (e) {
@@ -450,26 +468,27 @@ function GeneratedView({
   }, [body]);
 
   const tweetText = `${title}\n\n${blurb}`.slice(0, 270);
-  const linkedinText = `${title}\n\n${blurb}\n\n— Written with Quill`;
+  const tagline = lang === "ar" ? "— كُتب باستخدام كويل" : "— Written with Quill";
+  const linkedinText = `${title}\n\n${blurb}\n\n${tagline}`;
   const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
   const liUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(linkedinText)}`;
 
   const copyForLinkedin = async () => {
     await navigator.clipboard.writeText(linkedinText);
-    toast.success("Copied — paste into LinkedIn");
+    toast.success(t("share.copied"));
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <button onClick={copy} className="flex items-center gap-2 rounded-full border border-ink/20 px-4 py-2 text-sm hover:bg-ink/5">
-          <Copy className="h-4 w-4" /> Copy markdown
+          <Copy className="h-4 w-4" /> {t("post.copy.md")}
         </button>
         <button
           onClick={() => setEditing((v) => !v)}
           className="rounded-full border border-ink/20 px-4 py-2 text-sm hover:bg-ink/5"
         >
-          {editing ? "Preview" : "Edit"}
+          {editing ? t("post.preview") : t("post.edit")}
         </button>
         {editing && (
           <button
@@ -477,7 +496,7 @@ function GeneratedView({
             disabled={busy}
             className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90 disabled:opacity-50"
           >
-            Save changes
+            {t("post.save")}
           </button>
         )}
       </div>
@@ -487,7 +506,7 @@ function GeneratedView({
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border-0 border-b border-ink/10 bg-transparent pb-3 font-serif text-4xl tracking-tight focus:outline-none focus:ring-0"
+            className="w-full border-0 border-b border-ink/10 bg-transparent pb-3 font-serif text-3xl tracking-tight focus:outline-none focus:ring-0 sm:text-4xl"
           />
           <textarea
             value={content}
@@ -498,21 +517,21 @@ function GeneratedView({
         </div>
       ) : (
         <article className="prose prose-quill max-w-none">
-          <h1 className="!font-serif !text-5xl !leading-tight">{title}</h1>
+          <h1 className="!font-serif !text-3xl !leading-tight sm:!text-5xl">{title}</h1>
           <ReactMarkdown>{body}</ReactMarkdown>
         </article>
       )}
 
       <div className="mt-12 rounded-2xl border border-ink/10 bg-white p-5">
         <div className="flex items-center gap-2 text-sm font-medium">
-          <RefreshCw className="h-4 w-4 text-brand" /> Tweak the draft
+          <RefreshCw className="h-4 w-4 text-brand" /> {t("post.tweak.title")}
         </div>
-        <p className="mt-1 text-sm text-ink/60">e.g. "make it punchier", "add a stronger intro", "cut to 500 words".</p>
-        <div className="mt-3 flex gap-2">
+        <p className="mt-1 text-sm text-ink/60">{t("post.tweak.hint")}</p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <input
             value={tweak}
             onChange={(e) => setTweak(e.target.value)}
-            placeholder="Your feedback…"
+            placeholder={t("post.tweak.placeholder")}
             className="flex-1 rounded-md border border-ink/15 bg-paper px-3 py-2 focus:border-brand focus:outline-none"
           />
           <button
@@ -520,7 +539,7 @@ function GeneratedView({
             disabled={!tweak.trim() || busy}
             className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
           >
-            {busy ? "Rewriting…" : "Rewrite"}
+            {busy ? t("post.tweak.rewriting") : t("post.tweak.rewrite")}
           </button>
         </div>
       </div>
@@ -529,10 +548,8 @@ function GeneratedView({
         <div className="flex items-start gap-3 p-5">
           <Share2 className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
           <div className="flex-1">
-            <h3 className="font-serif text-xl text-ink">Now share what you wrote.</h3>
-            <p className="mt-1 text-sm text-ink/70">
-              Your expertise only helps people who see it. Post it where your audience lives — it takes 30 seconds.
-            </p>
+            <h3 className="font-serif text-xl text-ink">{t("share.title")}</h3>
+            <p className="mt-1 text-sm text-ink/70">{t("share.body")}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <a
                 href={xUrl}
@@ -540,7 +557,7 @@ function GeneratedView({
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90"
               >
-                <Twitter className="h-4 w-4" /> Post on X
+                <Twitter className="h-4 w-4" /> {t("share.x")}
               </a>
               <a
                 href={liUrl}
@@ -548,13 +565,13 @@ function GeneratedView({
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90"
               >
-                <Linkedin className="h-4 w-4" /> Share on LinkedIn
+                <Linkedin className="h-4 w-4" /> {t("share.li")}
               </a>
               <button
                 onClick={copyForLinkedin}
                 className="flex items-center gap-2 rounded-full border border-ink/20 bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
               >
-                <Copy className="h-4 w-4" /> Copy social blurb
+                <Copy className="h-4 w-4" /> {t("share.copy")}
               </button>
             </div>
             {blurb && (
