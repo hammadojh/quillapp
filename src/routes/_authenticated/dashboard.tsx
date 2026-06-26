@@ -82,7 +82,7 @@ function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-serif text-xl">{p.title}</div>
                       <div className="mt-1 flex items-center gap-3 text-xs text-ink/50">
-                        <span className={p.status === "generated" ? "text-accent" : ""}>
+                        <span className={p.status === "generated" ? "text-brand" : ""}>
                           {p.status === "generated" ? "Generated" : "Interview in progress"}
                         </span>
                         <span>·</span>

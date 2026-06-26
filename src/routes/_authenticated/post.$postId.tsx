@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Sparkles, Copy, RefreshCw, Trash2, Send } from "lucide-react";
+import { ArrowLeft, Sparkles, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, VolumeX, Share2, Linkedin, Twitter } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/post/$postId")({
@@ -115,6 +115,113 @@ function InterviewView({
     onError: (e) => toast.error(e.message || "Chat error"),
   });
 
+  // ---- Voice mode ----
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const spokenIdsRef = useRef<Set<string>>(new Set());
+
+  // Speak each new assistant message once when streaming completes.
+  useEffect(() => {
+    if (!voiceMode || status !== "ready") return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const last = messages.at(-1);
+    if (!last || last.role !== "assistant") return;
+    if (spokenIdsRef.current.has(last.id)) return;
+    const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
+    if (!text) return;
+    spokenIdsRef.current.add(last.id);
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.02;
+    utter.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }, [messages, status, voiceMode]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      streamRef.current = stream;
+      const mime = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      rec.onstop = async () => {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
+        if (blob.size < 2048) {
+          toast.error("That recording was empty — try again.");
+          return;
+        }
+        setTranscribing(true);
+        try {
+          const fd = new FormData();
+          const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+          fd.append("file", blob, `recording.${ext}`);
+          const r = await fetch("/api/transcribe", { method: "POST", body: fd });
+          if (!r.ok) throw new Error(await r.text());
+          const { text } = (await r.json()) as { text: string };
+          const clean = text.trim();
+          if (!clean) {
+            toast.error("Didn't catch that — try again.");
+            return;
+          }
+          await sendMessage({ text: clean });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Transcription failed");
+        } finally {
+          setTranscribing(false);
+        }
+      };
+      rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+    } catch {
+      toast.error("Microphone access denied");
+    }
+  };
+
+  const stopRecording = () => {
+    setRecording(false);
+    recorderRef.current?.stop();
+    recorderRef.current = null;
+  };
+
+  const toggleVoiceMode = () => {
+    setVoiceMode((v) => {
+      const next = !v;
+      if (!next && typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (!next && recording) stopRecording();
+      return next;
+    });
+  };
+
   // Seed an opening question if empty
   const seededRef = useRef(false);
   useEffect(() => {
@@ -171,14 +278,25 @@ function InterviewView({
           <p className="text-xs uppercase tracking-widest text-ink/40">Interview</p>
           <h1 className="font-serif text-2xl">Tell me about your topic</h1>
         </div>
-        <button
-          onClick={generate}
-          disabled={!canGenerate || generating}
-          className="flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
-        >
-          <Sparkles className="h-4 w-4" />
-          {generating ? "Writing…" : "Generate post"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleVoiceMode}
+            className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${voiceMode ? "border-brand bg-brand text-white" : "border-ink/20 text-ink/70 hover:bg-ink/5"}`}
+            aria-pressed={voiceMode}
+            title={voiceMode ? "Voice mode on" : "Voice mode off"}
+          >
+            {voiceMode ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            Voice
+          </button>
+          <button
+            onClick={generate}
+            disabled={!canGenerate || generating}
+            className="flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+          >
+            <Sparkles className="h-4 w-4" />
+            {generating ? "Writing…" : "Generate post"}
+          </button>
+        </div>
       </div>
 
       <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto py-6">
@@ -202,7 +320,7 @@ function InterviewView({
           }
           return (
             <div key={m.id} className="max-w-[90%]">
-              <div className="text-xs uppercase tracking-widest text-accent/80">Quill</div>
+              <div className="text-xs uppercase tracking-widest text-brand/80">Quill</div>
               <div className="mt-1 whitespace-pre-wrap font-serif text-lg leading-relaxed">{text}</div>
             </div>
           );
@@ -212,6 +330,27 @@ function InterviewView({
         )}
       </div>
 
+      {voiceMode ? (
+        <div className="flex flex-col items-center gap-3 border-t border-ink/10 py-6">
+          <button
+            onClick={recording ? stopRecording : startRecording}
+            disabled={transcribing || status === "submitted" || status === "streaming"}
+            className={`flex h-20 w-20 items-center justify-center rounded-full text-white shadow-lg transition disabled:opacity-40 ${recording ? "bg-red-600 animate-pulse" : "bg-brand hover:opacity-90"}`}
+            aria-label={recording ? "Stop recording" : "Start recording"}
+          >
+            {recording ? <Square className="h-7 w-7" /> : <Mic className="h-8 w-8" />}
+          </button>
+          <p className="text-sm text-ink/60">
+            {transcribing
+              ? "Transcribing…"
+              : recording
+                ? "Listening — tap to stop"
+                : status === "streaming" || status === "submitted"
+                  ? "Quill is thinking…"
+                  : "Tap the mic and answer out loud"}
+          </p>
+        </div>
+      ) : (
       <form onSubmit={submit} className="flex items-end gap-2 border-t border-ink/10 py-4">
         <textarea
           value={input}
@@ -224,7 +363,7 @@ function InterviewView({
           }}
           rows={2}
           placeholder="Type your answer…"
-          className="flex-1 resize-none rounded-xl border border-ink/15 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-accent focus:outline-none"
+          className="flex-1 resize-none rounded-xl border border-ink/15 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-brand focus:outline-none"
           autoFocus
         />
         <button
@@ -236,6 +375,7 @@ function InterviewView({
           <Send className="h-4 w-4" />
         </button>
       </form>
+      )}
     </div>
   );
 }
@@ -299,6 +439,26 @@ function GeneratedView({
   // strip the leading "# Title" since we render title separately
   const body = content.replace(/^#\s+.+\n+/, "");
 
+  // Build a punchy social blurb from the first non-heading paragraph.
+  const blurb = useMemo(() => {
+    const first = body
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .find((p) => p && !p.startsWith("#") && !p.startsWith(">")) ?? "";
+    const plain = first.replace(/[*_`#>\[\]()]/g, "").trim();
+    return plain.length > 220 ? plain.slice(0, 217).trimEnd() + "…" : plain;
+  }, [body]);
+
+  const tweetText = `${title}\n\n${blurb}`.slice(0, 270);
+  const linkedinText = `${title}\n\n${blurb}\n\n— Written with Quill`;
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+  const liUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(linkedinText)}`;
+
+  const copyForLinkedin = async () => {
+    await navigator.clipboard.writeText(linkedinText);
+    toast.success("Copied — paste into LinkedIn");
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
       <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -333,7 +493,7 @@ function GeneratedView({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={28}
-            className="w-full resize-y rounded-lg border border-ink/15 bg-white p-4 font-mono text-sm leading-relaxed focus:border-accent focus:outline-none"
+            className="w-full resize-y rounded-lg border border-ink/15 bg-white p-4 font-mono text-sm leading-relaxed focus:border-brand focus:outline-none"
           />
         </div>
       ) : (
@@ -345,7 +505,7 @@ function GeneratedView({
 
       <div className="mt-12 rounded-2xl border border-ink/10 bg-white p-5">
         <div className="flex items-center gap-2 text-sm font-medium">
-          <RefreshCw className="h-4 w-4 text-accent" /> Tweak the draft
+          <RefreshCw className="h-4 w-4 text-brand" /> Tweak the draft
         </div>
         <p className="mt-1 text-sm text-ink/60">e.g. "make it punchier", "add a stronger intro", "cut to 500 words".</p>
         <div className="mt-3 flex gap-2">
@@ -353,15 +513,56 @@ function GeneratedView({
             value={tweak}
             onChange={(e) => setTweak(e.target.value)}
             placeholder="Your feedback…"
-            className="flex-1 rounded-md border border-ink/15 bg-paper px-3 py-2 focus:border-accent focus:outline-none"
+            className="flex-1 rounded-md border border-ink/15 bg-paper px-3 py-2 focus:border-brand focus:outline-none"
           />
           <button
             onClick={regenerate}
             disabled={!tweak.trim() || busy}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
           >
             {busy ? "Rewriting…" : "Rewrite"}
           </button>
+        </div>
+      </div>
+
+      <div className="mt-6 overflow-hidden rounded-2xl border border-brand/20 bg-brand/5">
+        <div className="flex items-start gap-3 p-5">
+          <Share2 className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+          <div className="flex-1">
+            <h3 className="font-serif text-xl text-ink">Now share what you wrote.</h3>
+            <p className="mt-1 text-sm text-ink/70">
+              Your expertise only helps people who see it. Post it where your audience lives — it takes 30 seconds.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href={xUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90"
+              >
+                <Twitter className="h-4 w-4" /> Post on X
+              </a>
+              <a
+                href={liUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+              >
+                <Linkedin className="h-4 w-4" /> Share on LinkedIn
+              </a>
+              <button
+                onClick={copyForLinkedin}
+                className="flex items-center gap-2 rounded-full border border-ink/20 bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
+              >
+                <Copy className="h-4 w-4" /> Copy social blurb
+              </button>
+            </div>
+            {blurb && (
+              <p className="mt-4 rounded-md border border-ink/10 bg-white/70 p-3 text-sm italic text-ink/70">
+                "{blurb}"
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </main>

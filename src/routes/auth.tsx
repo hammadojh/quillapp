@@ -98,7 +98,7 @@ function AuthPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-accent focus:outline-none"
+            className="w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-brand focus:outline-none"
           />
           <input
             type="password"
@@ -107,7 +107,7 @@ function AuthPage() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-accent focus:outline-none"
+            className="w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-brand focus:outline-none"
           />
           <button
             type="submit"
@@ -122,7 +122,7 @@ function AuthPage() {
           {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
           <button
             onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="font-medium text-accent underline-offset-4 hover:underline"
+            className="font-medium text-brand underline-offset-4 hover:underline"
           >
             {mode === "signin" ? "Create an account" : "Sign in"}
           </button>

@@ -30,7 +30,8 @@
   --font-serif: "Fraunces", ui-serif, Georgia, serif;
   --color-paper: var(--paper);
   --color-ink: var(--ink);
-  --color-accent: var(--accent-color);
+  --color-brand: var(--accent-color);
+  --color-brand-foreground: #ffffff;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
