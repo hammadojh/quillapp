@@ -414,10 +414,13 @@ function InterviewView({
           <h1 className="truncate font-serif text-xl sm:text-2xl">{t("post.interview.title")}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <label className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs text-ink/70">
+          <div className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs text-ink/70">
             <Volume2 className="h-4 w-4" />
             <span className="hidden sm:inline">{t("post.voice")}</span>
             <Switch
+              dir="ltr"
+              className="h-6 w-11"
+              thumbClassName="h-5 w-5 data-[state=checked]:translate-x-5"
               checked={voiceMode}
               onCheckedChange={(v) => {
                 setVoiceMode(v);
@@ -429,7 +432,7 @@ function InterviewView({
               }}
               aria-label={t("post.voice")}
             />
-          </label>
+          </div>
         </div>
       </div>
 
