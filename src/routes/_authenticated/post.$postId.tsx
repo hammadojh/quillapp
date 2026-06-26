@@ -135,21 +135,20 @@ function InterviewView({
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const spokenIdsRef = useRef<Set<string>>(new Set());
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const speakAbortRef = useRef<AbortController | null>(null);
   const [speaking, setSpeaking] = useState(false);
+  const [loadingVoice, setLoadingVoice] = useState(false);
 
   const stopSpeaking = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
+    speakAbortRef.current?.abort();
+    speakAbortRef.current = null;
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
     }
     setSpeaking(false);
+    setLoadingVoice(false);
   };
 
   // Speak each new assistant message once via Lovable AI TTS when streaming completes.
@@ -162,32 +161,91 @@ function InterviewView({
     const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
     if (!text) return;
     spokenIdsRef.current.add(last.id);
-    let cancelled = false;
     stopSpeaking();
-    setSpeaking(true);
+    setLoadingVoice(true);
+    const ac = new AbortController();
+    speakAbortRef.current = ac;
     (async () => {
+      const AC: typeof AudioContext =
+        (window as unknown as { AudioContext: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext ??
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AC({ sampleRate: 24000 });
+      audioCtxRef.current = ctx;
+      if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+      let playhead = 0;
+      let pending = new Uint8Array(0);
+      let started = false;
+      const playChunk = (incoming: Uint8Array) => {
+        const bytes = new Uint8Array(pending.length + incoming.length);
+        bytes.set(pending);
+        bytes.set(incoming, pending.length);
+        const usable = bytes.length - (bytes.length % 2);
+        pending = bytes.slice(usable);
+        if (usable === 0) return;
+        const samples = new Int16Array(bytes.buffer, 0, usable / 2);
+        const floats = Float32Array.from(samples, (s) => s / 32768);
+        const buffer = ctx.createBuffer(1, floats.length, 24000);
+        buffer.copyToChannel(floats, 0);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        if (playhead === 0) playhead = ctx.currentTime + 0.05;
+        else playhead = Math.max(playhead, ctx.currentTime);
+        source.start(playhead);
+        playhead += buffer.duration;
+        if (!started) {
+          started = true;
+          setLoadingVoice(false);
+          setSpeaking(true);
+          const endAt = playhead;
+          const tick = () => {
+            if (ac.signal.aborted) return;
+            if (ctx.currentTime >= endAt - 0.05) setSpeaking(false);
+            else setTimeout(tick, 200);
+          };
+          // schedule when finished
+        }
+      };
       try {
         const r = await fetch("/api/speak", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text, lang }),
+          signal: ac.signal,
         });
-        if (!r.ok) throw new Error(await r.text());
-        const blob = await r.blob();
-        if (cancelled) return;
-        const url = URL.createObjectURL(blob);
-        audioUrlRef.current = url;
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended = () => stopSpeaking();
-        audio.onerror = () => stopSpeaking();
-        await audio.play().catch(() => stopSpeaking());
+        if (!r.ok || !r.body) throw new Error("TTS failed");
+        const { createParser } = await import("eventsource-parser");
+        const parser = createParser({
+          onEvent(event) {
+            let payload: { type: string; audio?: string };
+            try { payload = JSON.parse(event.data); } catch { return; }
+            if (payload.type !== "speech.audio.delta" || !payload.audio) return;
+            const binary = atob(payload.audio);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            playChunk(bytes);
+          },
+        });
+        const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          parser.feed(value);
+        }
+        // Stop "speaking" once scheduled audio finishes
+        const remaining = Math.max(0, (playhead - ctx.currentTime) * 1000);
+        setTimeout(() => {
+          if (!ac.signal.aborted) setSpeaking(false);
+        }, remaining + 100);
       } catch {
-        setSpeaking(false);
+        if (!ac.signal.aborted) {
+          setLoadingVoice(false);
+          setSpeaking(false);
+        }
       }
     })();
     return () => {
-      cancelled = true;
+      ac.abort();
     };
   }, [messages, status, voiceMode, lang]);
 
@@ -391,9 +449,16 @@ function InterviewView({
                 ? t("post.voice.listening")
                 : status === "streaming" || status === "submitted"
                   ? t("post.voice.thinking")
-                  : speaking
-                    ? (lang === "ar" ? "يتحدث…" : "Speaking…")
-                    : t("post.voice.idle")}
+                  : loadingVoice
+                    ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-ink/20 border-t-brand" />
+                          {lang === "ar" ? "جارٍ تجهيز الصوت…" : "Preparing voice…"}
+                        </span>
+                      )
+                    : speaking
+                      ? (lang === "ar" ? "يتحدث…" : "Speaking…")
+                      : t("post.voice.idle")}
           </p>
         </div>
       ) : (
