@@ -66,7 +66,7 @@ function PostPage() {
       ) : (
         <InterviewView
           postId={postId}
-          initialMessages={(post.interview_messages as UIMessage[]) ?? []}
+          initialMessages={(post.interview_messages as unknown as UIMessage[]) ?? []}
           updateFn={updateFn}
           generateFn={generateFn}
           onGenerated={() => qc.invalidateQueries({ queryKey: ["post", postId] })}
