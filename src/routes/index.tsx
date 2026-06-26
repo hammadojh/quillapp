@@ -31,7 +31,7 @@ function Index() {
         <p className="mb-4 text-sm uppercase tracking-[0.2em] text-ink/60">For experts who don't have time to write</p>
         <h1 className="font-serif text-5xl leading-[1.05] tracking-tight md:text-7xl">
           Your expertise,<br />
-          <span className="italic text-accent">written down.</span>
+          <span className="italic text-brand">written down.</span>
         </h1>
         <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink/75">
           Quill interviews you about what you know — then writes a polished long-form blog post you can publish or share on social media. Same voice. None of the staring at a blank page.
@@ -58,7 +58,7 @@ function Index() {
             { icon: Share2, title: "Share it anywhere", body: "Copy to your blog, LinkedIn, or newsletter. We even include a one-line social blurb." },
           ].map(({ icon: Icon, title, body }) => (
             <div key={title}>
-              <Icon className="h-6 w-6 text-accent" strokeWidth={1.5} />
+              <Icon className="h-6 w-6 text-brand" strokeWidth={1.5} />
               <h3 className="mt-4 font-serif text-2xl">{title}</h3>
               <p className="mt-2 text-ink/70">{body}</p>
             </div>

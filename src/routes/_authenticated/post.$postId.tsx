@@ -174,7 +174,7 @@ function InterviewView({
         <button
           onClick={generate}
           disabled={!canGenerate || generating}
-          className="flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+          className="flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40"
         >
           <Sparkles className="h-4 w-4" />
           {generating ? "Writing…" : "Generate post"}
@@ -202,7 +202,7 @@ function InterviewView({
           }
           return (
             <div key={m.id} className="max-w-[90%]">
-              <div className="text-xs uppercase tracking-widest text-accent/80">Quill</div>
+              <div className="text-xs uppercase tracking-widest text-brand/80">Quill</div>
               <div className="mt-1 whitespace-pre-wrap font-serif text-lg leading-relaxed">{text}</div>
             </div>
           );
@@ -224,7 +224,7 @@ function InterviewView({
           }}
           rows={2}
           placeholder="Type your answer…"
-          className="flex-1 resize-none rounded-xl border border-ink/15 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-accent focus:outline-none"
+          className="flex-1 resize-none rounded-xl border border-ink/15 bg-white px-4 py-3 text-ink placeholder-ink/40 focus:border-brand focus:outline-none"
           autoFocus
         />
         <button
@@ -333,7 +333,7 @@ function GeneratedView({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={28}
-            className="w-full resize-y rounded-lg border border-ink/15 bg-white p-4 font-mono text-sm leading-relaxed focus:border-accent focus:outline-none"
+            className="w-full resize-y rounded-lg border border-ink/15 bg-white p-4 font-mono text-sm leading-relaxed focus:border-brand focus:outline-none"
           />
         </div>
       ) : (
@@ -345,7 +345,7 @@ function GeneratedView({
 
       <div className="mt-12 rounded-2xl border border-ink/10 bg-white p-5">
         <div className="flex items-center gap-2 text-sm font-medium">
-          <RefreshCw className="h-4 w-4 text-accent" /> Tweak the draft
+          <RefreshCw className="h-4 w-4 text-brand" /> Tweak the draft
         </div>
         <p className="mt-1 text-sm text-ink/60">e.g. "make it punchier", "add a stronger intro", "cut to 500 words".</p>
         <div className="mt-3 flex gap-2">
@@ -353,12 +353,12 @@ function GeneratedView({
             value={tweak}
             onChange={(e) => setTweak(e.target.value)}
             placeholder="Your feedback…"
-            className="flex-1 rounded-md border border-ink/15 bg-paper px-3 py-2 focus:border-accent focus:outline-none"
+            className="flex-1 rounded-md border border-ink/15 bg-paper px-3 py-2 focus:border-brand focus:outline-none"
           />
           <button
             onClick={regenerate}
             disabled={!tweak.trim() || busy}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
           >
             {busy ? "Rewriting…" : "Rewrite"}
           </button>
