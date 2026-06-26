@@ -344,6 +344,7 @@ function InterviewView({
 
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [length, setLength] = useState<"short" | "medium" | "long">("short");
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -360,7 +361,7 @@ function InterviewView({
   const generate = async () => {
     setGenerating(true);
     try {
-      await generateFn({ data: { id: postId, language: lang } });
+      await generateFn({ data: { id: postId, language: lang, length } });
       toast.success(t("toast.ready"));
       onGenerated();
     } catch (e) {
@@ -381,6 +382,7 @@ function InterviewView({
           <h1 className="truncate font-serif text-xl sm:text-2xl">{t("post.interview.title")}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <LengthSelect value={length} onChange={setLength} />
           <button
             onClick={toggleVoiceMode}
             className={`flex h-10 w-10 items-center justify-center rounded-full border transition sm:h-auto sm:w-auto sm:px-3 sm:py-2 ${voiceMode ? "border-brand bg-brand text-white" : "border-ink/20 text-ink/70 hover:bg-ink/5"}`}
