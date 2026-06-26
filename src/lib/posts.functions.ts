@@ -85,18 +85,25 @@ const GEN_SYSTEM = `You are an accomplished editorial writer who turns expert in
 
 Rules:
 - Output ONLY the article in clean Markdown, no preamble, no commentary.
+- Language: write the entire article in the language the expert chose near the end of the interview (Arabic or English). If unclear, follow the DEFAULT_LANGUAGE noted in the prompt. Headings, body, and share blurb must all be in that one language.
 - Start with a # Title that is specific and intriguing (not generic).
 - Open with a 1–2 sentence hook that grabs the reader.
 - Use 3–5 ## H2 sections with concrete substance from the interview.
 - Include specific examples, stories, numbers, or analogies the expert mentioned.
 - Voice: confident, warm, first-person from the expert, no fluffy filler.
-- End with a brief conclusion + a one-line social share blurb prefixed exactly with: > **Share blurb:** 
+- End with a brief conclusion + a one-line social share blurb prefixed exactly with: > **Share blurb:**
 - Length: 700–1100 words.`;
 
 export const generateBlogPost = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    z.object({ id: z.string().uuid(), tweak: z.string().optional() }).parse(input),
+    z
+      .object({
+        id: z.string().uuid(),
+        tweak: z.string().optional(),
+        language: z.enum(["ar", "en"]).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const key = process.env.LOVABLE_API_KEY;
@@ -119,9 +126,11 @@ export const generateBlogPost = createServerFn({ method: "POST" })
       })
       .join("\n\n");
 
+    const defaultLang = data.language === "en" ? "English" : "Arabic";
+    const header = `DEFAULT_LANGUAGE: ${defaultLang} (use this only if the expert never stated a preference in the interview)\n\n`;
     const prompt = data.tweak
-      ? `Rewrite this existing blog post applying this feedback: "${data.tweak}".\n\nORIGINAL POST:\n${post.content}\n\nORIGINAL INTERVIEW:\n${transcript}`
-      : `Write the blog post based on this interview transcript:\n\n${transcript}`;
+      ? `${header}Rewrite this existing blog post applying this feedback: "${data.tweak}". Keep the same language as the original unless the feedback explicitly requests a different one.\n\nORIGINAL POST:\n${post.content}\n\nORIGINAL INTERVIEW:\n${transcript}`
+      : `${header}Write the blog post based on this interview transcript:\n\n${transcript}`;
 
     const gateway = createLovableAiGatewayProvider(key);
     const result = await generateText({

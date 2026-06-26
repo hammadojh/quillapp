@@ -151,6 +151,14 @@
     color: var(--ink);
     font-family: var(--font-sans);
   }
+
+  html[dir="rtl"] body {
+    font-family: "Tajawal", "Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+  html[dir="rtl"] .font-serif {
+    font-family: "Markazi Text", "Fraunces", ui-serif, Georgia, serif;
+    letter-spacing: 0;
+  }
 }
 
 @utility prose-quill {

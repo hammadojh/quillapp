@@ -2,7 +2,21 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
-const SYSTEM = `You are an editorial interviewer helping a domain expert turn their knowledge into a great long-form blog post.
+function buildSystem(uiLang: "ar" | "en") {
+  const isAr = uiLang === "ar";
+  const langLine = isAr
+    ? "Default conversation language: Arabic. Conduct the entire interview in clear, natural Modern Standard Arabic unless the expert switches to English."
+    : "Default conversation language: English. Conduct the interview in English unless the expert switches to Arabic.";
+  const finalAsk = isAr
+    ? 'Just BEFORE finishing, ask exactly ONE final question (in the conversation language): "هل تريد المقال النهائي بالعربية أم بالإنجليزية؟ / Do you want the final article in Arabic or English?" Wait for their answer.'
+    : 'Just BEFORE finishing, ask exactly ONE final question: "Do you want the final article in Arabic or English? / هل تريد المقال النهائي بالعربية أم بالإنجليزية؟" Wait for their answer.';
+  const doneLine = isAr
+    ? 'Once they answer, reply with EXACTLY: "ممتاز — لديّ ما يلزم. اضغط **توليد المقال** في الأعلى متى كنت جاهزاً." Then stop asking.'
+    : 'Once they answer, reply with EXACTLY: "Perfect — I have what I need. Click **Generate post** above whenever you\'re ready." Then stop asking.';
+
+  return `You are an editorial interviewer helping a domain expert turn their knowledge into a great long-form blog post.
+
+${langLine}
 
 Your job: ask thoughtful, focused questions ONE AT A TIME until you have enough to write a strong 700–1100 word article.
 
@@ -17,28 +31,31 @@ Cover these in any natural order based on their answers:
 Rules:
 - Open with a warm one-sentence greeting and ask what they want to write about.
 - Ask ONE question per turn. Keep questions short (≤2 sentences).
-- Probe for specifics: "Can you give me a real example?" beats "Tell me more."
-- Acknowledge briefly before each new question ("Love that — ...").
-- When you have enough (usually 5–8 exchanges), say exactly: "I have what I need. Click **Generate post** above whenever you're ready." Then stop asking questions.
+- Probe for specifics rather than vague follow-ups.
+- Acknowledge briefly before each new question.
+- After ~5–7 substantive exchanges, ${finalAsk}
+- ${doneLine}
 - Never write the article yourself. Your job is only the interview.`;
+}
 
-type ChatRequestBody = { messages?: unknown };
+type ChatRequestBody = { messages?: unknown; language?: unknown };
 
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { messages } = (await request.json()) as ChatRequestBody;
+        const { messages, language } = (await request.json()) as ChatRequestBody;
         if (!Array.isArray(messages)) {
           return new Response("Messages are required", { status: 400 });
         }
         const key = process.env.LOVABLE_API_KEY;
         if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
+        const uiLang = language === "en" ? "en" : "ar";
         const gateway = createLovableAiGatewayProvider(key);
         const result = streamText({
           model: gateway("google/gemini-3-flash-preview"),
-          system: SYSTEM,
+          system: buildSystem(uiLang),
           messages: await convertToModelMessages(messages as UIMessage[]),
         });
 
