@@ -135,43 +135,72 @@ function InterviewView({
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const spokenIdsRef = useRef<Set<string>>(new Set());
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+  const [speaking, setSpeaking] = useState(false);
 
-  // Speak each new assistant message once when streaming completes.
+  const stopSpeaking = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    setSpeaking(false);
+  };
+
+  // Speak each new assistant message once via Lovable AI TTS when streaming completes.
   useEffect(() => {
     if (!voiceMode || status !== "ready") return;
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (typeof window === "undefined") return;
     const last = messages.at(-1);
     if (!last || last.role !== "assistant") return;
     if (spokenIdsRef.current.has(last.id)) return;
     const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
     if (!text) return;
     spokenIdsRef.current.add(last.id);
-    const utter = new SpeechSynthesisUtterance(text);
-    const wantArabic = lang === "ar" || /[\u0600-\u06FF]/.test(text);
-    utter.lang = wantArabic ? "ar-SA" : "en-US";
-    const voices = window.speechSynthesis.getVoices();
-    const match = voices.find((v) => v.lang.toLowerCase().startsWith(wantArabic ? "ar" : "en"));
-    if (match) utter.voice = match;
-    utter.rate = 1.02;
-    utter.pitch = 1;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
+    let cancelled = false;
+    stopSpeaking();
+    setSpeaking(true);
+    (async () => {
+      try {
+        const r = await fetch("/api/speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, lang }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const blob = await r.blob();
+        if (cancelled) return;
+        const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => stopSpeaking();
+        audio.onerror = () => stopSpeaking();
+        await audio.play().catch(() => stopSpeaking());
+      } catch {
+        setSpeaking(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [messages, status, voiceMode, lang]);
 
   useEffect(() => {
     return () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopSpeaking();
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
   const startRecording = async () => {
     try {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
+      stopSpeaking();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
@@ -231,9 +260,7 @@ function InterviewView({
   const toggleVoiceMode = () => {
     setVoiceMode((v) => {
       const next = !v;
-      if (!next && typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
+      if (!next) stopSpeaking();
       if (!next && recording) stopRecording();
       return next;
     });
@@ -364,7 +391,9 @@ function InterviewView({
                 ? t("post.voice.listening")
                 : status === "streaming" || status === "submitted"
                   ? t("post.voice.thinking")
-                  : t("post.voice.idle")}
+                  : speaking
+                    ? (lang === "ar" ? "يتحدث…" : "Speaking…")
+                    : t("post.voice.idle")}
           </p>
         </div>
       ) : (
