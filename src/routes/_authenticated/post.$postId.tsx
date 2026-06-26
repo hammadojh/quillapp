@@ -7,34 +7,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Sparkles, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, VolumeX, Share2, Linkedin, Twitter } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useT, LangToggle, type Lang } from "@/lib/i18n";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/post/$postId")({
   head: () => ({ meta: [{ title: "Post — Quill" }] }),
   component: PostPage,
 });
 
-type LengthValue = "short" | "medium" | "long";
-function LengthSelect({ value, onChange }: { value: LengthValue; onChange: (v: LengthValue) => void }) {
-  const { t } = useT();
-  return (
-    <label className="flex items-center gap-1.5 rounded-full border border-ink/20 px-2.5 py-1.5 text-xs text-ink/70">
-      <span className="hidden sm:inline">{t("post.length")}:</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as LengthValue)}
-        className="bg-transparent text-xs font-medium text-ink focus:outline-none"
-        aria-label={t("post.length")}
-      >
-        <option value="short">{t("post.length.short")} · {t("post.length.short.hint")}</option>
-        <option value="medium">{t("post.length.medium")} · {t("post.length.medium.hint")}</option>
-        <option value="long">{t("post.length.long")} · {t("post.length.long.hint")}</option>
-      </select>
-    </label>
-  );
-}
+const GEN_SENTINEL = "[[GENERATE]]";
 
 function PostPage() {
   const { t } = useT();
@@ -148,17 +131,18 @@ function InterviewView({
   });
 
   // ---- Voice mode ----
-  const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(true);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const spokenIdsRef = useRef<Set<string>>(new Set());
   const audioCtxRef = useRef<AudioContext | null>(null);
   const speakAbortRef = useRef<AbortController | null>(null);
-  const [speaking, setSpeaking] = useState(false);
-  const [loadingVoice, setLoadingVoice] = useState(false);
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const playedIdsRef = useRef<Set<string>>(new Set());
 
   const stopSpeaking = () => {
     speakAbortRef.current?.abort();
@@ -167,22 +151,15 @@ function InterviewView({
       audioCtxRef.current.close().catch(() => {});
       audioCtxRef.current = null;
     }
-    setSpeaking(false);
-    setLoadingVoice(false);
+    setPlayingId(null);
+    setLoadingId(null);
   };
 
-  // Speak each new assistant message once via Lovable AI TTS when streaming completes.
-  useEffect(() => {
-    if (!voiceMode || status !== "ready") return;
+  const playMessage = (id: string, text: string) => {
     if (typeof window === "undefined") return;
-    const last = messages.at(-1);
-    if (!last || last.role !== "assistant") return;
-    if (spokenIdsRef.current.has(last.id)) return;
-    const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
-    if (!text) return;
-    spokenIdsRef.current.add(last.id);
+    if (!text.trim()) return;
     stopSpeaking();
-    setLoadingVoice(true);
+    setLoadingId(id);
     const ac = new AbortController();
     speakAbortRef.current = ac;
     (async () => {
@@ -215,15 +192,8 @@ function InterviewView({
         playhead += buffer.duration;
         if (!started) {
           started = true;
-          setLoadingVoice(false);
-          setSpeaking(true);
-          const endAt = playhead;
-          const tick = () => {
-            if (ac.signal.aborted) return;
-            if (ctx.currentTime >= endAt - 0.05) setSpeaking(false);
-            else setTimeout(tick, 200);
-          };
-          // schedule when finished
+          setLoadingId(null);
+          setPlayingId(id);
         }
       };
       try {
@@ -252,22 +222,20 @@ function InterviewView({
           if (done) break;
           parser.feed(value);
         }
-        // Stop "speaking" once scheduled audio finishes
         const remaining = Math.max(0, (playhead - ctx.currentTime) * 1000);
         setTimeout(() => {
-          if (!ac.signal.aborted) setSpeaking(false);
+          if (ac.signal.aborted) return;
+          playedIdsRef.current.add(id);
+          setPlayingId((curr) => (curr === id ? null : curr));
         }, remaining + 100);
       } catch {
         if (!ac.signal.aborted) {
-          setLoadingVoice(false);
-          setSpeaking(false);
+          setLoadingId(null);
+          setPlayingId(null);
         }
       }
     })();
-    return () => {
-      ac.abort();
-    };
-  }, [messages, status, voiceMode, lang]);
+  };
 
   useEffect(() => {
     return () => {
@@ -364,7 +332,6 @@ function InterviewView({
 
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [length, setLength] = useState<"short" | "medium" | "long">("short");
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -381,7 +348,7 @@ function InterviewView({
   const generate = async () => {
     setGenerating(true);
     try {
-      await generateFn({ data: { id: postId, language: lang, length } });
+      await generateFn({ data: { id: postId, language: lang } });
       toast.success(t("toast.ready"));
       onGenerated();
     } catch (e) {
@@ -391,8 +358,53 @@ function InterviewView({
     }
   };
 
-  const exchangeCount = messages.filter((m) => m.role === "user").length;
-  const canGenerate = exchangeCount >= 3;
+  // Auto-trigger generation when AI emits the sentinel.
+  const triggeredRef = useRef(false);
+  useEffect(() => {
+    if (triggeredRef.current || generating || status !== "ready") return;
+    const last = messages.at(-1);
+    if (!last || last.role !== "assistant") return;
+    const text = last.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+    if (text.includes(GEN_SENTINEL)) {
+      triggeredRef.current = true;
+      stopSpeaking();
+      generate();
+    }
+  }, [messages, status, generating]);
+
+  // Auto-play next unplayed assistant message when autoPlay is on.
+  useEffect(() => {
+    if (!voiceMode || !autoPlay) return;
+    if (status !== "ready") return;
+    if (playingId || loadingId) return;
+    if (recording || transcribing) return;
+    const next = messages.find((m) => {
+      if (m.role !== "assistant") return false;
+      if (playedIdsRef.current.has(m.id)) return false;
+      const t = m.parts.map((p) => (p.type === "text" ? p.text : "")).join("").trim();
+      if (!t || t.includes(GEN_SENTINEL)) return false;
+      return true;
+    });
+    if (next) {
+      const text = next.parts.map((p) => (p.type === "text" ? p.text : "")).join("").replace(GEN_SENTINEL, "").trim();
+      playMessage(next.id, text);
+    }
+  }, [messages, status, autoPlay, voiceMode, playingId, loadingId, recording, transcribing]);
+
+  const onPlayClick = (id: string, text: string) => {
+    if (playingId === id || loadingId === id) {
+      stopSpeaking();
+      setAutoPlay(false);
+      return;
+    }
+    // Mark all prior assistant messages as played so autoplay continues from this one.
+    const idx = messages.findIndex((m) => m.id === id);
+    messages.slice(0, idx).forEach((m) => {
+      if (m.role === "assistant") playedIdsRef.current.add(m.id);
+    });
+    setAutoPlay(true);
+    playMessage(id, text);
+  };
 
   return (
     <div className="mx-auto flex h-[calc(100vh-65px)] max-w-3xl flex-col px-4 sm:px-6">
@@ -402,26 +414,30 @@ function InterviewView({
           <h1 className="truncate font-serif text-xl sm:text-2xl">{t("post.interview.title")}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <LengthSelect value={length} onChange={setLength} />
-          <button
-            onClick={toggleVoiceMode}
-            className={`flex h-10 w-10 items-center justify-center rounded-full border transition sm:h-auto sm:w-auto sm:px-3 sm:py-2 ${voiceMode ? "border-brand bg-brand text-white" : "border-ink/20 text-ink/70 hover:bg-ink/5"}`}
-            aria-pressed={voiceMode}
-            title={t("post.voice")}
-          >
-            {voiceMode ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            <span className="hidden sm:ms-2 sm:inline sm:text-xs sm:font-medium">{t("post.voice")}</span>
-          </button>
-          <button
-            onClick={generate}
-            disabled={!canGenerate || generating}
-            className="flex items-center gap-2 rounded-full bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-40 sm:px-5"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span>{generating ? t("post.generating") : t("post.generate")}</span>
-          </button>
+          <label className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs text-ink/70">
+            <Volume2 className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("post.voice")}</span>
+            <Switch
+              checked={voiceMode}
+              onCheckedChange={(v) => {
+                setVoiceMode(v);
+                if (!v) {
+                  stopSpeaking();
+                  setAutoPlay(false);
+                  if (recording) stopRecording();
+                }
+              }}
+              aria-label={t("post.voice")}
+            />
+          </label>
         </div>
       </div>
+
+      {generating && (
+        <div className="flex items-center justify-center gap-2 border-b border-brand/20 bg-brand/5 py-3 text-sm text-brand">
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("post.generating")}
+        </div>
+      )}
 
       <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto py-6">
         {messages.length === 0 && (
@@ -430,9 +446,11 @@ function InterviewView({
           </p>
         )}
         {messages.map((m) => {
-          const text = m.parts
+          const rawText = m.parts
             .map((p) => (p.type === "text" ? p.text : ""))
             .join("");
+          const text = rawText.replace(GEN_SENTINEL, "").trim();
+          if (m.role === "assistant" && !text) return null;
           if (m.role === "user") {
             return (
               <div key={m.id} className="flex justify-end">
@@ -442,10 +460,37 @@ function InterviewView({
               </div>
             );
           }
+          const isPlaying = playingId === m.id;
+          const isLoadingThis = loadingId === m.id;
           return (
             <div key={m.id} className="max-w-[90%]">
               <div className="text-xs uppercase tracking-widest text-brand/80">{t("brand")}</div>
               <div className="mt-1 whitespace-pre-wrap font-serif text-lg leading-relaxed">{text}</div>
+              {voiceMode && (
+                <button
+                  type="button"
+                  onClick={() => onPlayClick(m.id, text)}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/70 hover:bg-ink/5"
+                  aria-label={isPlaying ? t("post.pause") : t("post.play")}
+                >
+                  {isLoadingThis ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      {t("post.loading.voice")}
+                    </>
+                  ) : isPlaying ? (
+                    <>
+                      <Pause className="h-3.5 w-3.5" />
+                      {t("post.pause")}
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-3.5 w-3.5" />
+                      {t("post.play")}
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           );
         })}
@@ -471,16 +516,7 @@ function InterviewView({
                 ? t("post.voice.listening")
                 : status === "streaming" || status === "submitted"
                   ? t("post.voice.thinking")
-                  : loadingVoice
-                    ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-ink/20 border-t-brand" />
-                          {lang === "ar" ? "جارٍ تجهيز الصوت…" : "Preparing voice…"}
-                        </span>
-                      )
-                    : speaking
-                      ? (lang === "ar" ? "يتحدث…" : "Speaking…")
-                      : t("post.voice.idle")}
+                  : t("post.voice.idle")}
           </p>
         </div>
       ) : (
@@ -530,7 +566,6 @@ function GeneratedView({
   const [content, setContent] = useState(post.content);
   const [tweak, setTweak] = useState("");
   const [busy, setBusy] = useState(false);
-  const [length, setLength] = useState<"short" | "medium" | "long">("short");
 
   useEffect(() => {
     setTitle(post.title);
@@ -560,7 +595,7 @@ function GeneratedView({
     if (!tweak.trim()) return;
     setBusy(true);
     try {
-      await generateFn({ data: { id: post.id, tweak, language: lang, length } });
+      await generateFn({ data: { id: post.id, tweak, language: lang } });
       toast.success(t("toast.rewritten"));
       setTweak("");
       onUpdated();
@@ -651,7 +686,6 @@ function GeneratedView({
             placeholder={t("post.tweak.placeholder")}
             className="flex-1 rounded-md border border-ink/15 bg-paper px-3 py-2 focus:border-brand focus:outline-none"
           />
-          <LengthSelect value={length} onChange={setLength} />
           <button
             onClick={regenerate}
             disabled={!tweak.trim() || busy}
