@@ -146,7 +146,22 @@
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+  }
+}
+
+@utility prose-quill {
+  & h1, & h2, & h3 { font-family: var(--font-serif); color: var(--ink); letter-spacing: -0.01em; }
+  & h2 { font-size: 1.75rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
+  & h3 { font-size: 1.25rem; margin-top: 1.75rem; }
+  & p { color: #2a2a2a; line-height: 1.8; margin: 1.1rem 0; font-size: 1.075rem; }
+  & blockquote { border-left: 3px solid var(--accent-color); padding-left: 1rem; font-style: italic; color: #2a2a2a; }
+  & a { color: var(--accent-color); text-decoration: underline; text-underline-offset: 3px; }
+  & ul, & ol { padding-left: 1.25rem; margin: 1rem 0; }
+  & li { margin: 0.4rem 0; }
+  & strong { color: var(--ink); }
+}
   }
 }
