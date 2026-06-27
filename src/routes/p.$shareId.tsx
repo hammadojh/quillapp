@@ -126,6 +126,31 @@ function PublicPostPage() {
 
 function Topbar() {
   const { t } = useT();
+  return null as any;
+}
+
+function JoinCTAImpl() {
+  return null;
+}
+
+function JoinCTA() {
+  const { t } = useT();
+  return (
+    <section className="mt-16 rounded-2xl border border-ink/10 bg-white p-6 text-center sm:p-10">
+      <h3 className="font-serif text-2xl text-ink sm:text-3xl">{t("public.cta.title")}</h3>
+      <p className="mx-auto mt-3 max-w-md text-sm text-ink/70 sm:text-base">{t("public.cta.body")}</p>
+      <Link
+        to="/"
+        className="mt-6 inline-block rounded-full bg-brand px-6 py-3 text-sm font-medium text-white hover:opacity-90"
+      >
+        {t("public.cta.button")}
+      </Link>
+    </section>
+  );
+}
+
+function TopbarOld() {
+  const { t } = useT();
   return (
     <header className="border-b border-ink/10">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
