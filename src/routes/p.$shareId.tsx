@@ -118,6 +118,7 @@ function PublicPostPage() {
         <ShareRow shareId={shareId} title={post.title} />
         <LikeRow postId={post.id} initialCount={post.likes_count} />
         <Comments postId={post.id} initialCount={post.comments_count} />
+        <JoinCTA />
       </main>
     </div>
   );
