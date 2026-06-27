@@ -198,6 +198,7 @@ const dicts: Record<Lang, Dict> = {
     "share.li": "Share on LinkedIn",
     "share.copy": "Copy social blurb",
     "share.copied": "Copied — paste into LinkedIn",
+    "share.native": "Share your article",
     "toast.copied.md": "Copied as markdown",
     "toast.saved": "Saved",
     "toast.ready": "Your post is ready",
