@@ -1,63 +1,68 @@
-# BlogSmith — AI Blog Post Generator for Experts
+## Home page redesign + social features
 
-An adaptive AI interview app that helps experts turn their knowledge into a polished long-form blog post they can share. Each expert signs in, the AI asks targeted follow-up questions about their topic, then generates a full article they can edit, copy, and save to their account.
+Big shift from a private drafting tool into a **public, social writing platform**. Here is what I'll build, in order.
 
-## Core Flow
+### 1. Database changes (one migration)
 
-1. **Sign in** (email/password) — posts are tied to the user's account.
-2. **Dashboard** — list of past posts (drafts + generated), button to start a new one.
-3. **Interview** — chat-style adaptive interview. AI opens with "What do you want to write about?" then asks ~5–8 smart follow-ups based on answers (target audience, key insight, supporting examples/stories, takeaways, tone, CTA). AI decides when it has enough and offers a "Generate post" button.
-4. **Generated post** — full markdown article rendered with title, intro, headed sections, conclusion. User can:
-   - Edit the title and body inline
-   - Regenerate with a tweak ("make it punchier", "shorter")
-   - Copy to clipboard / copy as markdown
-   - Save (auto-saves on generation)
-5. **Post detail page** at `/post/$postId` — view/edit any saved post.
+- `posts` — add `is_public boolean default false`, `slug text unique`, `share_id text unique` (short id for `/p/<id>`), `likes_count int default 0`, `comments_count int default 0`.
+- `profiles` — `user_id uuid pk → auth.users`, `username text unique`, `display_name text`, `bio text`, `avatar_url text`. Auto-created on signup via trigger.
+- `post_likes` — `(post_id, user_id)` unique, with triggers to keep `posts.likes_count` in sync.
+- `post_comments` — `id, post_id, user_id, content, created_at`, with triggers for `comments_count`.
+- RLS:
+  - Public can `SELECT` posts where `is_public = true`, all profiles, all comments, all likes.
+  - Authenticated users manage their own posts/profile/likes/comments.
+- Sample data: mark the 6 best existing Arabic posts as public so the landing page has real content immediately.
 
-## Pages / Routes
+### 2. Landing page redesign (`/`)
 
-- `/` — landing page (public): hero, how it works, CTA → sign in
-- `/auth` — sign in / sign up (public)
-- `/_authenticated/dashboard` — list of user's posts + "New post" button
-- `/_authenticated/new` — adaptive interview chat → generated post view
-- `/_authenticated/post/$postId` — view / edit / regenerate a saved post
+- **Hero with a textbox at the top** like ChatGPT/Claude — "ما الذي تريد الكتابة عنه؟" / "What do you want to write about?" with a Start button.
+  - Typing + clicking Start drops the topic into `sessionStorage` and routes to `/auth` (or `/dashboard → new post` if already signed in). The new-post flow picks it up and uses it as the first interview message.
+- Section: **"اقرأ ما كتبه الخبراء"** — grid of 6 sample public posts (title, author, excerpt, like count). Each links to `/p/<share_id>`.
+- Keep the "how it works" 3-step strip, simplified.
+- Mobile-first, RTL-correct, same paper/ink theme.
 
-## Backend (Lovable Cloud)
+### 3. Public post page (`/p/$shareId`)
 
-**Tables**
-- `posts` — `id uuid pk`, `user_id uuid → auth.users`, `title text`, `content text` (markdown), `status text` ('interviewing' | 'generated'), `interview_messages jsonb` (UIMessage[]), `created_at`, `updated_at`. RLS: users see/modify only their own.
+- SSR-friendly, no auth required.
+- Renders the article as Markdown, shows author (links to profile), like button, share buttons, comments list + composer.
+- Unauthenticated users see "Sign in to like / comment" CTAs instead of disabled buttons.
+- Proper `<head>` meta (title, description, og:title, og:description) from post content.
 
-**Server functions (`createServerFn`, authenticated)**
-- `listPosts` — user's posts ordered by updated_at desc
-- `getPost(id)` — single post
-- `createPost` — new draft, returns id (navigated to)
-- `updatePost(id, { title?, content?, interview_messages?, status? })`
-- `deletePost(id)`
-- `generateBlogPost(id)` — reads interview transcript, calls Lovable AI to produce final markdown article, saves to post
+### 4. Public profile page (`/u/$username`)
 
-**Streaming chat server route** at `/api/chat` — adaptive interview. System prompt instructs Gemini to act as an editorial interviewer: ask one focused question at a time, dig into the expert's unique insight, stop when it has enough material (topic, audience, key insight, 2–3 supporting points, tone, CTA), then tell the user to click "Generate post". Per-message persistence handled via `updatePost` from the client.
+- Avatar, display name, bio.
+- Grid of that user's public posts.
+- "Edit profile" button only when viewing own profile.
 
-## AI
+### 5. Post workspace updates (`/_authenticated/post/$postId`)
 
-- Lovable AI Gateway via AI SDK, model `google/gemini-3-flash-preview`.
-- Interview uses `streamText` + `useChat` with AI Elements (`Conversation`, `Message`, `MessageResponse`, `PromptInput`, `Shimmer`).
-- Generation uses `generateText` in a server function with a prompt that turns the transcript into a 700–1100 word blog post in markdown: compelling title, 1-sentence hook, 3–5 H2 sections, conclusion, optional 1-line social share blurb at the end.
+- New **Privacy toggle**: Private / Public. When made public, generate `share_id` + show the share link with copy button.
+- **Share link** card with copy button + existing X/LinkedIn share buttons now point at `/p/<share_id>`.
+- Small "View public page" link when public.
 
-## UI / Design
+### 6. Dashboard updates
 
-Editorial, writerly feel — not a generic chatbot. Warm off-white background, serif display font for titles (Fraunces), clean sans (Inter) for UI/body. One accent color (deep ink blue). Generous line height. Markdown rendered with `react-markdown` + Tailwind typography classes for the generated post.
+- Each post row shows a Public/Private badge.
+- Add a top link to the user's own public profile.
 
-AI Elements drive the interview surface. Assistant messages render with no bubble; user messages get a subtle filled bubble. Custom domain-specific empty state ("Tell me what you want to teach the world today.") instead of a generic Sparkles icon.
+### 7. Auth flow change
 
-## Technical Notes
+- After signup/signin, if `sessionStorage` has a pending topic from the landing hero, auto-create a new post with that topic as the first user message and route straight into the interview.
+- New users without a username are prompted once for a username (modal on dashboard).
 
-- TanStack Start file-based routing, `_authenticated` layout already managed by integration.
-- AI Gateway wired through `src/lib/ai-gateway.server.ts` helper per Lovable AI Gateway pattern.
-- Chat transport: `DefaultChatTransport({ api: "/api/chat" })`, chat `id` = `postId`, messages persisted to `posts.interview_messages` on assistant finish via `onFinish` in the route's `toUIMessageStreamResponse`.
-- Markdown rendering: `react-markdown` + `@tailwindcss/typography` already-available `prose` classes.
-- No thread list/sidebar — each post IS a conversation; the dashboard is the list.
+### Technical notes
 
-## Out of Scope (this build)
+- All new server logic via `createServerFn` in `src/lib/*.functions.ts` (posts, profiles, likes, comments).
+- Public reads use a publishable-key server client + `TO anon` SELECT policies — no admin client for normal reads.
+- New routes: `src/routes/p.$shareId.tsx`, `src/routes/u.$username.tsx`, `src/routes/_authenticated/profile.tsx`.
+- i18n: add Arabic + English strings for every new label.
+- Likes/comments counts maintained by SQL triggers, not client logic.
 
-- Social-platform-specific reformatting (LinkedIn/Twitter variants) — long-form blog only, per your choice.
-- Image generation, scheduled publishing, team workspaces, comments.
+### Out of scope (will not do unless you ask)
+
+- Follows / notifications / feeds.
+- Rich-text comments (plain text only).
+- Image uploads for avatars (initials placeholder for now).
+- Search / discovery beyond the landing samples.
+
+Shall I proceed?
