@@ -35,7 +35,10 @@ function Index() {
 
   const start = () => {
     const clean = topic.trim();
-    if (clean) sessionStorage.setItem("quill.pendingTopic", clean);
+    if (clean) {
+      try { localStorage.setItem("quill.pendingTopic", clean); } catch {}
+      try { sessionStorage.setItem("quill.pendingTopic", clean); } catch {}
+    }
     navigate({ to: authed ? "/dashboard" : "/auth" });
   };
 
