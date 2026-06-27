@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.functions";
 import { setPostVisibility } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -754,7 +755,7 @@ function GeneratedView({
       ) : (
         <article className="prose prose-quill max-w-none">
           <h1 className="!font-serif !text-3xl !leading-tight sm:!text-5xl">{title}</h1>
-          <ReactMarkdown>{body}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
         </article>
       )}
 
