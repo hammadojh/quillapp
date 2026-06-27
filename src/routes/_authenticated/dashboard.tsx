@@ -2,12 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listPosts, createPost, deletePost } from "@/lib/posts.functions";
+import { getMyProfile } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, FileText, LogOut, Trash2 } from "lucide-react";
+import { Plus, FileText, LogOut, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useT, LangToggle } from "@/lib/i18n";
 import { ar as arLocale } from "date-fns/locale";
+import { useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Your posts — Quill" }] }),
@@ -21,6 +23,8 @@ function Dashboard() {
   const listFn = useServerFn(listPosts);
   const createFn = useServerFn(createPost);
   const deleteFn = useServerFn(deletePost);
+  const profileFn = useServerFn(getMyProfile);
+  const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["posts"],
@@ -32,6 +36,21 @@ function Dashboard() {
     onSuccess: ({ id }) => navigate({ to: "/post/$postId", params: { postId: id } }),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not create post"),
   });
+
+  // Consume any pending topic from the landing page hero.
+  const consumedRef = useRef(false);
+  useEffect(() => {
+    if (consumedRef.current) return;
+    if (typeof window === "undefined") return;
+    const topic = sessionStorage.getItem("quill.pendingTopic");
+    if (!topic) return;
+    consumedRef.current = true;
+    sessionStorage.removeItem("quill.pendingTopic");
+    createFn().then(({ id }) => {
+      sessionStorage.setItem(`quill.seed.${id}`, topic);
+      navigate({ to: "/post/$postId", params: { postId: id } });
+    }).catch((e) => toast.error(e instanceof Error ? e.message : "Could not create post"));
+  }, [createFn, navigate]);
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
@@ -49,6 +68,15 @@ function Dashboard() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
           <Link to="/dashboard" className="font-serif text-2xl font-semibold tracking-tight">{t("brand")}</Link>
           <div className="flex items-center gap-2">
+            {profile?.username && (
+              <Link
+                to="/u/$username"
+                params={{ username: profile.username }}
+                className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink/70 hover:bg-ink/5"
+              >
+                <User className="h-4 w-4" /> <span className="hidden sm:inline">{t("profile.view")}</span>
+              </Link>
+            )}
             <LangToggle />
             <button onClick={signOut} className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink/70 hover:bg-ink/5">
               <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.signout")}</span>
@@ -90,6 +118,14 @@ function Dashboard() {
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/50">
                         <span className={p.status === "generated" ? "text-brand" : ""}>
                           {p.status === "generated" ? t("dash.status.generated") : t("dash.status.progress")}
+                        </span>
+                        <span>·</span>
+                        <span className={
+                          p.is_public
+                            ? "rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand"
+                            : "rounded-full bg-ink/10 px-2 py-0.5 text-[10px] font-medium text-ink/60"
+                        }>
+                          {p.is_public ? t("dash.badge.public") : t("dash.badge.private")}
                         </span>
                         <span>·</span>
                         <span>

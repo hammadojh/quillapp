@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UUsernameRouteImport } from './routes/u.$username'
 import { Route as PShareIdRouteImport } from './routes/p.$shareId'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiSpeakRouteImport } from './routes/api/speak'
@@ -31,6 +32,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UUsernameRoute = UUsernameRouteImport.update({
+  id: '/u/$username',
+  path: '/u/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PShareIdRoute = PShareIdRouteImport.update({
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/api/speak': typeof ApiSpeakRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/p/$shareId': typeof PShareIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/post/$postId': typeof AuthenticatedPostPostIdRoute
 }
 export interface FileRoutesByTo {
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/api/speak': typeof ApiSpeakRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/p/$shareId': typeof PShareIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/post/$postId': typeof AuthenticatedPostPostIdRoute
 }
 export interface FileRoutesById {
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/api/speak': typeof ApiSpeakRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/p/$shareId': typeof PShareIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/_authenticated/post/$postId': typeof AuthenticatedPostPostIdRoute
 }
 export interface FileRouteTypes {
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/api/speak'
     | '/api/transcribe'
     | '/p/$shareId'
+    | '/u/$username'
     | '/post/$postId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/api/speak'
     | '/api/transcribe'
     | '/p/$shareId'
+    | '/u/$username'
     | '/post/$postId'
   id:
     | '__root__'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/api/speak'
     | '/api/transcribe'
     | '/p/$shareId'
+    | '/u/$username'
     | '/_authenticated/post/$postId'
   fileRoutesById: FileRoutesById
 }
@@ -138,6 +150,7 @@ export interface RootRouteChildren {
   ApiSpeakRoute: typeof ApiSpeakRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   PShareIdRoute: typeof PShareIdRoute
+  UUsernameRoute: typeof UUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$username': {
+      id: '/u/$username'
+      path: '/u/$username'
+      fullPath: '/u/$username'
+      preLoaderRoute: typeof UUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$shareId': {
@@ -229,6 +249,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSpeakRoute: ApiSpeakRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   PShareIdRoute: PShareIdRoute,
+  UUsernameRoute: UUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
