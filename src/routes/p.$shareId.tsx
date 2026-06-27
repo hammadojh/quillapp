@@ -118,6 +118,7 @@ function PublicPostPage() {
         <ShareRow shareId={shareId} title={post.title} />
         <LikeRow postId={post.id} initialCount={post.likes_count} />
         <Comments postId={post.id} initialCount={post.comments_count} />
+        <JoinCTA />
       </main>
     </div>
   );
@@ -135,6 +136,26 @@ function Topbar() {
       </div>
     </header>
   );
+}
+
+function JoinCTA() {
+  const { t } = useT();
+  return (
+    <section className="mt-16 rounded-2xl border border-ink/10 bg-white p-6 text-center sm:p-10">
+      <h3 className="font-serif text-2xl text-ink sm:text-3xl">{t("public.cta.title")}</h3>
+      <p className="mx-auto mt-3 max-w-md text-sm text-ink/70 sm:text-base">{t("public.cta.body")}</p>
+      <Link
+        to="/"
+        className="mt-6 inline-block rounded-full bg-brand px-6 py-3 text-sm font-medium text-white hover:opacity-90"
+      >
+        {t("public.cta.button")}
+      </Link>
+    </section>
+  );
+}
+
+function TopbarOld() {
+  return null;
 }
 
 function ShareRow({ shareId, title }: { shareId: string; title: string }) {
