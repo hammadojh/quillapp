@@ -669,6 +669,29 @@ function GeneratedView({
     toast.success(t("post.share.copied"));
   };
 
+  const nativeShare = async () => {
+    try {
+      let pub = isPublic;
+      if (!pub) {
+        await togglePublic(true);
+        pub = true;
+      }
+      const url = post.share_id
+        ? `${window.location.origin}/p/${post.share_id}`
+        : (typeof window !== "undefined" ? window.location.href : "");
+      const shareData: ShareData = { title, text: blurb, url };
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share(shareData);
+      } else if (url) {
+        await navigator.clipboard.writeText(url);
+        toast.success(t("post.share.copied"));
+      }
+    } catch (e) {
+      if ((e as { name?: string })?.name === "AbortError") return;
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="mb-6 flex flex-wrap items-center gap-2">
