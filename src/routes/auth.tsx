@@ -5,6 +5,17 @@ import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { useT, LangToggle } from "@/lib/i18n";
 
+function routeAfterAuth(navigate: ReturnType<typeof useNavigate>) {
+  if (typeof window === "undefined") { navigate({ to: "/dashboard" }); return; }
+  const dest = sessionStorage.getItem("quill.afterAuth");
+  if (dest && dest.startsWith("/")) {
+    sessionStorage.removeItem("quill.afterAuth");
+    navigate({ to: dest as "/" });
+    return;
+  }
+  navigate({ to: "/dashboard" });
+}
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
