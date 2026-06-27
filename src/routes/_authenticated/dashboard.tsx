@@ -42,10 +42,13 @@ function Dashboard() {
   useEffect(() => {
     if (consumedRef.current) return;
     if (typeof window === "undefined") return;
-    const topic = sessionStorage.getItem("quill.pendingTopic");
+    const topic =
+      sessionStorage.getItem("quill.pendingTopic") ||
+      localStorage.getItem("quill.pendingTopic");
     if (!topic) return;
     consumedRef.current = true;
     sessionStorage.removeItem("quill.pendingTopic");
+    try { localStorage.removeItem("quill.pendingTopic"); } catch {}
     createFn().then(({ id }) => {
       sessionStorage.setItem(`quill.seed.${id}`, topic);
       navigate({ to: "/post/$postId", params: { postId: id } });
