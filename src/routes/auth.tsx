@@ -5,6 +5,17 @@ import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { useT, LangToggle } from "@/lib/i18n";
 
+function routeAfterAuth(navigate: ReturnType<typeof useNavigate>) {
+  if (typeof window === "undefined") { navigate({ to: "/dashboard" }); return; }
+  const dest = sessionStorage.getItem("quill.afterAuth");
+  if (dest && dest.startsWith("/")) {
+    sessionStorage.removeItem("quill.afterAuth");
+    navigate({ to: dest as "/" });
+    return;
+  }
+  navigate({ to: "/dashboard" });
+}
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -25,10 +36,10 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) routeAfterAuth(navigate);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) navigate({ to: "/dashboard" });
+      if (event === "SIGNED_IN" && session) routeAfterAuth(navigate);
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
