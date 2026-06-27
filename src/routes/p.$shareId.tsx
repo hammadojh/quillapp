@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Heart, MessageCircle, Twitter, Linkedin, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -111,7 +112,7 @@ function PublicPostPage() {
         </div>
 
         <article className="prose-quill">
-          <ReactMarkdown>{post.content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
         </article>
 
         <ShareRow shareId={shareId} title={post.title} />
