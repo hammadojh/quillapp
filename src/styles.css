@@ -171,6 +171,11 @@
   & ul, & ol { padding-left: 1.25rem; margin: 1rem 0; }
   & li { margin: 0.4rem 0; }
   & strong { color: var(--ink); }
+  & table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.95rem; display: block; overflow-x: auto; }
+  & thead { background: rgba(0,0,0,0.03); }
+  & th, & td { border: 1px solid rgba(0,0,0,0.12); padding: 0.55rem 0.75rem; text-align: start; vertical-align: top; }
+  & th { font-weight: 600; color: var(--ink); }
+  & tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
 }
 
 html, body { max-width: 100%; overflow-x: hidden; }
