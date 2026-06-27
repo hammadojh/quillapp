@@ -842,6 +842,15 @@ function GeneratedView({
           </div>
         </div>
       </div>
+
+      <div className="mt-8 mb-4">
+        <button
+          onClick={nativeShare}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-4 text-base font-semibold text-white shadow-sm hover:opacity-90"
+        >
+          <Share2 className="h-5 w-5" /> {t("share.native")}
+        </button>
+      </div>
     </main>
   );
 }
