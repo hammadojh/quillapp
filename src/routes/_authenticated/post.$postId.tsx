@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.functions";
 import { setPostVisibility } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -668,6 +669,29 @@ function GeneratedView({
     toast.success(t("post.share.copied"));
   };
 
+  const nativeShare = async () => {
+    try {
+      let pub = isPublic;
+      if (!pub) {
+        await togglePublic(true);
+        pub = true;
+      }
+      const url = post.share_id
+        ? `${window.location.origin}/p/${post.share_id}`
+        : (typeof window !== "undefined" ? window.location.href : "");
+      const shareData: ShareData = { title, text: blurb, url };
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share(shareData);
+      } else if (url) {
+        await navigator.clipboard.writeText(url);
+        toast.success(t("post.share.copied"));
+      }
+    } catch (e) {
+      if ((e as { name?: string })?.name === "AbortError") return;
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -754,7 +778,7 @@ function GeneratedView({
       ) : (
         <article className="prose prose-quill max-w-none">
           <h1 className="!font-serif !text-3xl !leading-tight sm:!text-5xl">{title}</h1>
-          <ReactMarkdown>{body}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
         </article>
       )}
 
@@ -817,6 +841,15 @@ function GeneratedView({
             )}
           </div>
         </div>
+      </div>
+
+      <div className="mt-8 mb-4">
+        <button
+          onClick={nativeShare}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-4 text-base font-semibold text-white shadow-sm hover:opacity-90"
+        >
+          <Share2 className="h-5 w-5" /> {t("share.native")}
+        </button>
       </div>
     </main>
   );
