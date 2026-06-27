@@ -79,6 +79,7 @@ const dicts: Record<Lang, Dict> = {
     "share.li": "مشاركة على لينكدإن",
     "share.copy": "نسخ العبارة الاجتماعية",
     "share.copied": "تم النسخ — الصقها في لينكدإن",
+    "share.native": "شارك مقالك",
     "toast.copied.md": "تم النسخ كـ Markdown",
     "toast.saved": "تم الحفظ",
     "toast.ready": "مقالك جاهز",
