@@ -6,8 +6,9 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.functions";
+import { setPostVisibility } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2 } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2, Globe, Lock, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useT, LangToggle, type Lang } from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
@@ -67,7 +68,7 @@ function PostPage() {
 
       {post.status === "generated" ? (
         <GeneratedView
-          post={post}
+          post={post as any}
           onUpdated={() => qc.invalidateQueries({ queryKey: ["post", postId] })}
           updateFn={updateFn}
           generateFn={generateFn}
@@ -318,9 +319,18 @@ function InterviewView({
     if (seededRef.current) return;
     if (messages.length === 0 && status === "ready") {
       seededRef.current = true;
-      sendMessage({ text: lang === "ar" ? "لنبدأ." : "Let's begin." });
+      let seed: string | null = null;
+      if (typeof window !== "undefined") {
+        seed = sessionStorage.getItem(`quill.seed.${postId}`);
+        if (seed) sessionStorage.removeItem(`quill.seed.${postId}`);
+      }
+      sendMessage({
+        text: seed && seed.trim()
+          ? seed.trim()
+          : (lang === "ar" ? "لنبدأ." : "Let's begin."),
+      });
     }
-  }, [messages.length, status, sendMessage, lang]);
+  }, [messages.length, status, sendMessage, lang, postId]);
 
   // Persist messages whenever they change after a turn
   useEffect(() => {
@@ -558,7 +568,7 @@ function GeneratedView({
   updateFn,
   generateFn,
 }: {
-  post: { id: string; title: string; content: string };
+  post: { id: string; title: string; content: string; is_public: boolean; share_id: string | null };
   onUpdated: () => void;
   updateFn: ReturnType<typeof useServerFn<typeof updatePost>>;
   generateFn: ReturnType<typeof useServerFn<typeof generateBlogPost>>;
@@ -625,12 +635,37 @@ function GeneratedView({
   const tweetText = `${title}\n\n${blurb}`.slice(0, 270);
   const tagline = lang === "ar" ? "— كُتب باستخدام كويل" : "— Written with Quill";
   const linkedinText = `${title}\n\n${blurb}\n\n${tagline}`;
-  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-  const liUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(linkedinText)}`;
+  const publicUrl = post.share_id && typeof window !== "undefined"
+    ? `${window.location.origin}/p/${post.share_id}`
+    : "";
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}${publicUrl ? `&url=${encodeURIComponent(publicUrl)}` : ""}`;
+  const liUrl = post.is_public && publicUrl
+    ? `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicUrl)}`
+    : `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(linkedinText)}`;
 
   const copyForLinkedin = async () => {
     await navigator.clipboard.writeText(linkedinText);
     toast.success(t("share.copied"));
+  };
+
+  const visibilityFn = useServerFn(setPostVisibility);
+  const [isPublic, setIsPublic] = useState(post.is_public);
+  useEffect(() => setIsPublic(post.is_public), [post.is_public]);
+  const togglePublic = async (next: boolean) => {
+    setIsPublic(next);
+    try {
+      await visibilityFn({ data: { id: post.id, is_public: next } });
+      toast.success(next ? t("post.privacy.public") : t("post.privacy.private"));
+      onUpdated();
+    } catch (e) {
+      setIsPublic(!next);
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  };
+  const copyLink = async () => {
+    if (!publicUrl) return;
+    await navigator.clipboard.writeText(publicUrl);
+    toast.success(t("post.share.copied"));
   };
 
   return (
@@ -653,6 +688,52 @@ function GeneratedView({
           >
             {t("post.save")}
           </button>
+        )}
+      </div>
+
+      {/* Privacy & share link */}
+      <div className="mb-6 rounded-2xl border border-ink/10 bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {isPublic ? <Globe className="h-5 w-5 text-brand" /> : <Lock className="h-5 w-5 text-ink/50" />}
+            <div>
+              <div className="text-sm font-medium">
+                {isPublic ? t("post.privacy.public") : t("post.privacy.private")}
+              </div>
+              <div className="text-xs text-ink/55">
+                {isPublic ? t("post.privacy.publicHint") : t("post.privacy.privateHint")}
+              </div>
+            </div>
+          </div>
+          <Switch
+            dir="ltr"
+            className="h-6 w-11"
+            thumbClassName="h-5 w-5 data-[state=checked]:translate-x-5"
+            checked={isPublic}
+            onCheckedChange={togglePublic}
+            aria-label={t("post.privacy.label")}
+          />
+        </div>
+        {isPublic && publicUrl && (
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-1 items-center gap-2 rounded-md border border-ink/15 bg-paper px-3 py-2 text-xs text-ink/70">
+              <LinkIcon className="h-3.5 w-3.5 shrink-0" />
+              <span dir="ltr" className="truncate">{publicUrl}</span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={copyLink} className="rounded-md bg-ink px-3 py-2 text-xs font-medium text-paper hover:opacity-90">
+                {t("post.share.copy")}
+              </button>
+              <a
+                href={publicUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 rounded-md border border-ink/15 px-3 py-2 text-xs hover:bg-ink/5"
+              >
+                <ExternalLink className="h-3 w-3" /> {t("post.share.view")}
+              </a>
+            </div>
+          </div>
         )}
       </div>
 
