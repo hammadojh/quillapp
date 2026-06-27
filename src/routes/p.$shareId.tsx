@@ -16,8 +16,54 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useT, LangToggle } from "@/lib/i18n";
 
+function buildExcerpt(content: string, n = 180): string {
+  const stripped = (content ?? "")
+    .replace(/^#\s+.*$/m, "")
+    .replace(/^>.*$/gm, "")
+    .replace(/[#*_`>]/g, "")
+    .trim();
+  const flat = stripped.replace(/\s+/g, " ").trim();
+  return flat.length > n ? flat.slice(0, n).trim() + "…" : flat;
+}
+
 export const Route = createFileRoute("/p/$shareId")({
-  head: () => ({ meta: [{ title: "Read — Quill" }] }),
+  loader: async ({ params }) => {
+    const post = await getPublicPostByShareId({ data: { shareId: params.shareId } });
+    if (!post) return { post: null as null };
+    return {
+      post: {
+        title: post.title,
+        excerpt: buildExcerpt(post.content),
+        author:
+          post.author?.display_name || post.author?.username || null,
+      },
+    };
+  },
+  head: ({ params, loaderData }) => {
+    const url = `https://quillapp.lovable.app/p/${params.shareId}`;
+    if (!loaderData?.post) {
+      return {
+        meta: [{ title: "Read — Quill" }],
+        links: [{ rel: "canonical", href: url }],
+      };
+    }
+    const { title, excerpt, author } = loaderData.post;
+    const fullTitle = author ? `${title} — ${author}` : title;
+    return {
+      meta: [
+        { title: fullTitle },
+        { name: "description", content: excerpt },
+        { property: "og:title", content: fullTitle },
+        { property: "og:description", content: excerpt },
+        { property: "og:type", content: "article" },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: fullTitle },
+        { name: "twitter:description", content: excerpt },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: PublicPostPage,
 });
 
