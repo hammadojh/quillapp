@@ -18,7 +18,7 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiSpeakRouteImport } from './routes/api/speak'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as ApiOgShareIdDotpngRouteImport } from './routes/api/og.$shareId[.]png'
+import { Route as ApiOgShareIdRouteImport } from './routes/api/og.$shareId'
 import { Route as AuthenticatedPostPostIdRouteImport } from './routes/_authenticated/post.$postId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -65,9 +65,9 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiOgShareIdDotpngRoute = ApiOgShareIdDotpngRouteImport.update({
-  id: '/api/og/$shareId.png',
-  path: '/api/og/$shareId.png',
+const ApiOgShareIdRoute = ApiOgShareIdRouteImport.update({
+  id: '/api/og/$shareId',
+  path: '/api/og/$shareId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPostPostIdRoute = AuthenticatedPostPostIdRouteImport.update({
@@ -86,7 +86,7 @@ export interface FileRoutesByFullPath {
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
   '/post/$postId': typeof AuthenticatedPostPostIdRoute
-  '/api/og/$shareId.png': typeof ApiOgShareIdDotpngRoute
+  '/api/og/$shareId': typeof ApiOgShareIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -98,7 +98,7 @@ export interface FileRoutesByTo {
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
   '/post/$postId': typeof AuthenticatedPostPostIdRoute
-  '/api/og/$shareId.png': typeof ApiOgShareIdDotpngRoute
+  '/api/og/$shareId': typeof ApiOgShareIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -112,7 +112,7 @@ export interface FileRoutesById {
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
   '/_authenticated/post/$postId': typeof AuthenticatedPostPostIdRoute
-  '/api/og/$shareId.png': typeof ApiOgShareIdDotpngRoute
+  '/api/og/$shareId': typeof ApiOgShareIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -126,7 +126,7 @@ export interface FileRouteTypes {
     | '/p/$shareId'
     | '/u/$username'
     | '/post/$postId'
-    | '/api/og/$shareId.png'
+    | '/api/og/$shareId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -138,7 +138,7 @@ export interface FileRouteTypes {
     | '/p/$shareId'
     | '/u/$username'
     | '/post/$postId'
-    | '/api/og/$shareId.png'
+    | '/api/og/$shareId'
   id:
     | '__root__'
     | '/'
@@ -151,7 +151,7 @@ export interface FileRouteTypes {
     | '/p/$shareId'
     | '/u/$username'
     | '/_authenticated/post/$postId'
-    | '/api/og/$shareId.png'
+    | '/api/og/$shareId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -163,7 +163,7 @@ export interface RootRouteChildren {
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   PShareIdRoute: typeof PShareIdRoute
   UUsernameRoute: typeof UUsernameRoute
-  ApiOgShareIdDotpngRoute: typeof ApiOgShareIdDotpngRoute
+  ApiOgShareIdRoute: typeof ApiOgShareIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -231,11 +231,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/og/$shareId.png': {
-      id: '/api/og/$shareId.png'
-      path: '/api/og/$shareId.png'
-      fullPath: '/api/og/$shareId.png'
-      preLoaderRoute: typeof ApiOgShareIdDotpngRouteImport
+    '/api/og/$shareId': {
+      id: '/api/og/$shareId'
+      path: '/api/og/$shareId'
+      fullPath: '/api/og/$shareId'
+      preLoaderRoute: typeof ApiOgShareIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/post/$postId': {
@@ -270,7 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTranscribeRoute: ApiTranscribeRoute,
   PShareIdRoute: PShareIdRoute,
   UUsernameRoute: UUsernameRoute,
-  ApiOgShareIdDotpngRoute: ApiOgShareIdDotpngRoute,
+  ApiOgShareIdRoute: ApiOgShareIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

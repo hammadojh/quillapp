@@ -144,7 +144,7 @@ export const Route = createFileRoute("/api/og/$shareId")({
           })
             .render()
             .asPng();
-          return new Response(png, {
+          return new Response(png as unknown as BodyInit, {
             headers: {
               "Content-Type": "image/png",
               "Cache-Control": "public, max-age=300, s-maxage=3600",
