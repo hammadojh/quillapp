@@ -18,6 +18,7 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as ApiSpeakRouteImport } from './routes/api/speak'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as ApiOgShareIdDotsvgRouteImport } from './routes/api/og.$shareId[.]svg'
 import { Route as AuthenticatedPostPostIdRouteImport } from './routes/_authenticated/post.$postId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -64,6 +65,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiOgShareIdDotsvgRoute = ApiOgShareIdDotsvgRouteImport.update({
+  id: '/api/og/$shareId.svg',
+  path: '/api/og/$shareId.svg',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedPostPostIdRoute = AuthenticatedPostPostIdRouteImport.update({
   id: '/post/$postId',
   path: '/post/$postId',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
   '/post/$postId': typeof AuthenticatedPostPostIdRoute
+  '/api/og/$shareId.svg': typeof ApiOgShareIdDotsvgRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
   '/post/$postId': typeof AuthenticatedPostPostIdRoute
+  '/api/og/$shareId.svg': typeof ApiOgShareIdDotsvgRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
   '/_authenticated/post/$postId': typeof AuthenticatedPostPostIdRoute
+  '/api/og/$shareId.svg': typeof ApiOgShareIdDotsvgRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/p/$shareId'
     | '/u/$username'
     | '/post/$postId'
+    | '/api/og/$shareId.svg'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/p/$shareId'
     | '/u/$username'
     | '/post/$postId'
+    | '/api/og/$shareId.svg'
   id:
     | '__root__'
     | '/'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/p/$shareId'
     | '/u/$username'
     | '/_authenticated/post/$postId'
+    | '/api/og/$shareId.svg'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,6 +163,7 @@ export interface RootRouteChildren {
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   PShareIdRoute: typeof PShareIdRoute
   UUsernameRoute: typeof UUsernameRoute
+  ApiOgShareIdDotsvgRoute: typeof ApiOgShareIdDotsvgRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/og/$shareId.svg': {
+      id: '/api/og/$shareId.svg'
+      path: '/api/og/$shareId.svg'
+      fullPath: '/api/og/$shareId.svg'
+      preLoaderRoute: typeof ApiOgShareIdDotsvgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/post/$postId': {
       id: '/_authenticated/post/$postId'
       path: '/post/$postId'
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTranscribeRoute: ApiTranscribeRoute,
   PShareIdRoute: PShareIdRoute,
   UUsernameRoute: UUsernameRoute,
+  ApiOgShareIdDotsvgRoute: ApiOgShareIdDotsvgRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
