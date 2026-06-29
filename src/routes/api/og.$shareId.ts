@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { publicSupabase } from "@/lib/public-client.server";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
-// Vite ?init returns a factory for a WebAssembly.Instance, which initWasm accepts.
-import resvgInit from "@resvg/resvg-wasm/index_bg.wasm?init";
+import resvgWasmUrl from "@resvg/resvg-wasm/index_bg.wasm?url";
 
 let wasmReady: Promise<void> | null = null;
-function ensureWasm(): Promise<void> {
+function ensureWasm(origin: string): Promise<void> {
   if (!wasmReady) {
     wasmReady = (async () => {
-      const instance = await (resvgInit as unknown as (imports?: any) => Promise<WebAssembly.Instance>)();
-      await initWasm(instance as unknown as WebAssembly.Module);
+      const url = resvgWasmUrl.startsWith("http") ? resvgWasmUrl : `${origin}${resvgWasmUrl}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`wasm fetch ${res.status} ${url}`);
+      await initWasm(res);
     })();
   }
   return wasmReady;
@@ -110,7 +111,7 @@ function renderSvg(opts: { title: string; author: string; hue: number; isRtl: bo
 export const Route = createFileRoute("/api/og/$shareId")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
         const { data: post } = await publicSupabase()
           .from("posts" as any)
           .select("title, user_id")
@@ -137,7 +138,7 @@ export const Route = createFileRoute("/api/og/$shareId")({
 
         let renderErr: unknown = null;
         try {
-          await ensureWasm();
+          await ensureWasm(new URL(request.url).origin);
           const png = new Resvg(svg, {
             fitTo: { mode: "width", value: 1200 },
             font: { loadSystemFonts: false },
