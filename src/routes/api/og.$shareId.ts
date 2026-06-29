@@ -93,7 +93,7 @@ function renderSvg(opts: { title: string; author: string; hue: number; isRtl: bo
 </svg>`;
 }
 
-export const Route = createFileRoute("/api/og/$shareId.svg")({
+export const Route = createFileRoute("/api/og/$shareId")({
   server: {
     handlers: {
       GET: async ({ params }) => {
