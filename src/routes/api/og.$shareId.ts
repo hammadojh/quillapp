@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { publicSupabase } from "@/lib/public-client.server";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
-// Vite emits the wasm asset and gives us a URL; we fetch it once per worker isolate.
-import resvgWasmUrl from "@resvg/resvg-wasm/index_bg.wasm?url";
+// Vite ?init returns a factory for a WebAssembly.Instance, which initWasm accepts.
+import resvgInit from "@resvg/resvg-wasm/index_bg.wasm?init";
 
 let wasmReady: Promise<void> | null = null;
 function ensureWasm(): Promise<void> {
   if (!wasmReady) {
     wasmReady = (async () => {
-      const res = await fetch(resvgWasmUrl);
-      if (!res.ok) throw new Error(`wasm fetch ${res.status}`);
-      await initWasm(res);
+      const instance = await (resvgInit as unknown as (imports?: any) => Promise<WebAssembly.Instance>)();
+      await initWasm(instance as unknown as WebAssembly.Module);
     })();
   }
   return wasmReady;
