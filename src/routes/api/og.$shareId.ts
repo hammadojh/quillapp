@@ -1,5 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { publicSupabase } from "@/lib/public-client.server";
+import { initWasm, Resvg } from "@resvg/resvg-wasm";
+import resvgWasmUrl from "@resvg/resvg-wasm/index_bg.wasm?url";
+
+let wasmReady: Promise<void> | null = null;
+function ensureWasm(origin: string): Promise<void> {
+  if (!wasmReady) {
+    wasmReady = (async () => {
+      const url = resvgWasmUrl.startsWith("http") ? resvgWasmUrl : `${origin}${resvgWasmUrl}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`wasm fetch ${res.status} ${url}`);
+      await initWasm(res);
+    })();
+  }
+  return wasmReady;
+}
 
 function esc(s: string): string {
   return s
@@ -96,7 +111,7 @@ function renderSvg(opts: { title: string; author: string; hue: number; isRtl: bo
 export const Route = createFileRoute("/api/og/$shareId")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
         const { data: post } = await publicSupabase()
           .from("posts" as any)
           .select("title, user_id")
@@ -121,12 +136,33 @@ export const Route = createFileRoute("/api/og/$shareId")({
         const hue = hashHue((author || "") + "|" + title);
         const svg = renderSvg({ title, author, hue, isRtl });
 
-        return new Response(svg, {
-          headers: {
-            "Content-Type": "image/svg+xml; charset=utf-8",
-            "Cache-Control": "public, max-age=300, s-maxage=3600",
-          },
-        });
+        let renderErr: unknown = null;
+        try {
+          await ensureWasm(new URL(request.url).origin);
+          const png = new Resvg(svg, {
+            fitTo: { mode: "width", value: 1200 },
+            font: { loadSystemFonts: false },
+          })
+            .render()
+            .asPng();
+          return new Response(png as unknown as BodyInit, {
+            headers: {
+              "Content-Type": "image/png",
+              "Cache-Control": "public, max-age=300, s-maxage=3600",
+            },
+          });
+        } catch (e) {
+          renderErr = e;
+          console.error("[og] png render failed:", e);
+          // Fallback to SVG so the route never 500s.
+          return new Response(svg, {
+            headers: {
+              "Content-Type": "image/svg+xml; charset=utf-8",
+              "Cache-Control": "public, max-age=60",
+              "X-Render-Error": String((renderErr as Error)?.message || renderErr).slice(0, 200),
+            },
+          });
+        }
       },
     },
   },
