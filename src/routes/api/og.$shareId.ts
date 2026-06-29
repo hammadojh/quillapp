@@ -136,6 +136,7 @@ export const Route = createFileRoute("/api/og/$shareId")({
         const hue = hashHue((author || "") + "|" + title);
         const svg = renderSvg({ title, author, hue, isRtl });
 
+        let renderErr: unknown = null;
         try {
           await ensureWasm();
           const png = new Resvg(svg, {
@@ -150,12 +151,15 @@ export const Route = createFileRoute("/api/og/$shareId")({
               "Cache-Control": "public, max-age=300, s-maxage=3600",
             },
           });
-        } catch {
+        } catch (e) {
+          renderErr = e;
+          console.error("[og] png render failed:", e);
           // Fallback to SVG so the route never 500s.
           return new Response(svg, {
             headers: {
               "Content-Type": "image/svg+xml; charset=utf-8",
               "Cache-Control": "public, max-age=60",
+              "X-Render-Error": String((renderErr as Error)?.message || renderErr).slice(0, 200),
             },
           });
         }
