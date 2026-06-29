@@ -1,5 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { publicSupabase } from "@/lib/public-client.server";
+import { initWasm, Resvg } from "@resvg/resvg-wasm";
+// Vite emits the wasm asset and gives us a URL; we fetch it once per worker isolate.
+import resvgWasmUrl from "@resvg/resvg-wasm/index_bg.wasm?url";
+
+let wasmReady: Promise<void> | null = null;
+function ensureWasm(): Promise<void> {
+  if (!wasmReady) {
+    wasmReady = (async () => {
+      const res = await fetch(resvgWasmUrl);
+      if (!res.ok) throw new Error(`wasm fetch ${res.status}`);
+      await initWasm(res);
+    })();
+  }
+  return wasmReady;
+}
 
 function esc(s: string): string {
   return s
@@ -121,12 +136,29 @@ export const Route = createFileRoute("/api/og/$shareId.png")({
         const hue = hashHue((author || "") + "|" + title);
         const svg = renderSvg({ title, author, hue, isRtl });
 
-        return new Response(svg, {
-          headers: {
-            "Content-Type": "image/svg+xml; charset=utf-8",
-            "Cache-Control": "public, max-age=300, s-maxage=3600",
-          },
-        });
+        try {
+          await ensureWasm();
+          const png = new Resvg(svg, {
+            fitTo: { mode: "width", value: 1200 },
+            font: { loadSystemFonts: false },
+          })
+            .render()
+            .asPng();
+          return new Response(png, {
+            headers: {
+              "Content-Type": "image/png",
+              "Cache-Control": "public, max-age=300, s-maxage=3600",
+            },
+          });
+        } catch {
+          // Fallback to SVG so the route never 500s.
+          return new Response(svg, {
+            headers: {
+              "Content-Type": "image/svg+xml; charset=utf-8",
+              "Cache-Control": "public, max-age=60",
+            },
+          });
+        }
       },
     },
   },
