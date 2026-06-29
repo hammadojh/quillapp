@@ -42,9 +42,7 @@ export const Route = createFileRoute("/p/$shareId")({
   },
   head: ({ params, loaderData }) => {
     const url = `https://quillapp.lovable.app/p/${params.shareId}`;
-    // Cache-bust per-update would be ideal, but loaderData isn't reliably populated for the
-    // bot crawler path; share-id is stable enough since title rarely changes after publish.
-    const ogImage = `https://quillapp.lovable.app/api/og/${params.shareId}.png`;
+    const ogImage = `https://quillapp.lovable.app/api/og/${params.shareId}`;
     if (!loaderData?.post) {
       return {
         meta: [{ title: "Read — Quill" }],
