@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { publicSupabase } from "@/lib/public-client.server";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
-import resvgWasmUrl from "@resvg/resvg-wasm/index_bg.wasm?url";
+
+const RESVG_WASM_CDN =
+  "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
 
 let wasmReady: Promise<void> | null = null;
-function ensureWasm(origin: string): Promise<void> {
+function ensureWasm(): Promise<void> {
   if (!wasmReady) {
     wasmReady = (async () => {
-      const url = resvgWasmUrl.startsWith("http") ? resvgWasmUrl : `${origin}${resvgWasmUrl}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`wasm fetch ${res.status} ${url}`);
+      const res = await fetch(RESVG_WASM_CDN);
+      if (!res.ok) throw new Error(`wasm fetch ${res.status} ${RESVG_WASM_CDN}`);
       await initWasm(res);
     })();
   }
@@ -138,7 +139,7 @@ export const Route = createFileRoute("/api/og/$shareId")({
 
         let renderErr: unknown = null;
         try {
-          await ensureWasm(new URL(request.url).origin);
+          await ensureWasm();
           const png = new Resvg(svg, {
             fitTo: { mode: "width", value: 1200 },
             font: { loadSystemFonts: false },
