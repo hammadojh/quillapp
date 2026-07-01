@@ -100,6 +100,27 @@ export const deletePost = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const regenerateThumbnail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    // Verify ownership via RLS-scoped read before running the privileged generator.
+    const { data: row, error } = await tbl(context.supabase)
+      .select("id, is_public")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Post not found");
+    if (!row.is_public) throw new Error("Make the post public before generating a thumbnail.");
+    const { ensurePostThumbnail } = await import("./thumbnails.server");
+    await ensurePostThumbnail(data.id);
+    const { data: fresh } = await tbl(context.supabase)
+      .select("thumbnail_url")
+      .eq("id", data.id)
+      .maybeSingle();
+    return { thumbnail_url: (fresh?.thumbnail_url ?? null) as string | null };
+  });
+
 const GEN_SYSTEM = `You are an accomplished editorial writer who turns expert interview transcripts into compelling long-form blog posts.
 
 Rules:

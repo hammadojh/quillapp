@@ -6,7 +6,8 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { getPost, updatePost, generateBlogPost, deletePost } from "@/lib/posts.functions";
+import { getPost, updatePost, generateBlogPost, deletePost, regenerateThumbnail } from "@/lib/posts.functions";
+import { thumbUrl } from "@/lib/thumb-url";
 import { setPostVisibility } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2, Globe, Lock, Link as LinkIcon, ExternalLink } from "lucide-react";
@@ -652,6 +653,21 @@ function GeneratedView({
   const visibilityFn = useServerFn(setPostVisibility);
   const [isPublic, setIsPublic] = useState(post.is_public);
   useEffect(() => setIsPublic(post.is_public), [post.is_public]);
+  const regenThumbFn = useServerFn(regenerateThumbnail);
+  const [thumbBusy, setThumbBusy] = useState(false);
+  const thumbStamp = (post as any).thumbnail_url as string | null;
+  const regenThumb = async () => {
+    setThumbBusy(true);
+    try {
+      await regenThumbFn({ data: { id: post.id } });
+      toast.success(t("post.thumb.done"));
+      onUpdated();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not regenerate");
+    } finally {
+      setThumbBusy(false);
+    }
+  };
   const togglePublic = async (next: boolean) => {
     setIsPublic(next);
     try {
@@ -757,6 +773,35 @@ function GeneratedView({
                 <ExternalLink className="h-3 w-3" /> {t("post.share.view")}
               </a>
             </div>
+          </div>
+        )}
+        {isPublic && (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-ink/10 bg-paper p-3 sm:flex-row sm:items-center">
+            <div className="h-20 w-36 shrink-0 overflow-hidden rounded-md border border-ink/10 bg-white">
+              {thumbStamp ? (
+                <img
+                  src={thumbUrl(post.id, thumbStamp)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[10px] text-ink/40">
+                  {t("post.thumb.none")}
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-medium">{t("post.thumb.title")}</div>
+              <div className="text-xs text-ink/55">{t("post.thumb.hint")}</div>
+            </div>
+            <button
+              onClick={regenThumb}
+              disabled={thumbBusy}
+              className="flex items-center justify-center gap-1.5 rounded-md border border-ink/15 px-3 py-2 text-xs hover:bg-ink/5 disabled:opacity-60"
+            >
+              {thumbBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {thumbBusy ? t("post.thumb.working") : t("post.thumb.regen")}
+            </button>
           </div>
         )}
       </div>
