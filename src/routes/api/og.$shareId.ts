@@ -1,17 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { publicSupabase } from "@/lib/public-client.server";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
-
-const RESVG_WASM_CDN =
-  "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+// Import the wasm as a bundled module. Cloudflare Workers disallow
+// WebAssembly.instantiate() from fetched bytes, but do allow instantiating
+// a WebAssembly.Module the bundler emits alongside the worker.
+// @ts-expect-error - wasm module import handled by the bundler
+import resvgWasmModule from "@resvg/resvg-wasm/index_bg.wasm";
 
 let wasmReady: Promise<void> | null = null;
 function ensureWasm(): Promise<void> {
   if (!wasmReady) {
     wasmReady = (async () => {
-      const res = await fetch(RESVG_WASM_CDN);
-      if (!res.ok) throw new Error(`wasm fetch ${res.status} ${RESVG_WASM_CDN}`);
-      await initWasm(res);
+      await initWasm(resvgWasmModule as WebAssembly.Module);
     })();
   }
   return wasmReady;
