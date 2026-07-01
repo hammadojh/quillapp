@@ -230,5 +230,9 @@ export const setPostVisibility = createServerFn({ method: "POST" })
       .update({ is_public: data.is_public })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (data.is_public) {
+      const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
+      ensurePostThumbnailBackground(data.id);
+    }
     return { ok: true };
   });
