@@ -76,6 +76,17 @@ export const updatePost = createServerFn({ method: "POST" })
       .update(patch)
       .eq("id", id);
     if (error) throw new Error(error.message);
+    // Regenerate the shareable thumbnail if the title changed on a public post.
+    if (typeof patch.title === "string") {
+      const { data: row } = await tbl(context.supabase)
+        .select("is_public")
+        .eq("id", id)
+        .maybeSingle();
+      if (row?.is_public) {
+        const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
+        ensurePostThumbnailBackground(id);
+      }
+    }
     return { ok: true };
   });
 
