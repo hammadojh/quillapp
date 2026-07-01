@@ -17,6 +17,11 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
             .from("post-thumbnails")
             .download(`${postId}.png`);
           if (error || !data) {
+            // Kick off generation in the background so the next request serves the real thumbnail.
+            try {
+              const { ensurePostThumbnailBackground } = await import("@/lib/thumbnails.server");
+              ensurePostThumbnailBackground(postId);
+            } catch { /* noop */ }
             return Response.redirect("https://quillapp.lovable.app/og-default.png", 302);
           }
           const buf = await data.arrayBuffer();
