@@ -42,7 +42,7 @@ export const Route = createFileRoute("/p/$shareId")({
   },
   head: ({ params, loaderData }) => {
     const url = `https://quillapp.lovable.app/p/${params.shareId}`;
-    const ogImage = `https://quillapp.lovable.app/api/og/${params.shareId}`;
+    const ogImage = `https://quillapp.lovable.app/og-default.png`;
     if (!loaderData?.post) {
       return {
         meta: [{ title: "Read — Quill" }],
