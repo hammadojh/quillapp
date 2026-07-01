@@ -86,6 +86,7 @@ export type Database = {
           likes_count: number
           share_id: string | null
           status: string
+          thumbnail_url: string | null
           title: string
           updated_at: string
           user_id: string
@@ -100,6 +101,7 @@ export type Database = {
           likes_count?: number
           share_id?: string | null
           status?: string
+          thumbnail_url?: string | null
           title?: string
           updated_at?: string
           user_id: string
@@ -114,6 +116,7 @@ export type Database = {
           likes_count?: number
           share_id?: string | null
           status?: string
+          thumbnail_url?: string | null
           title?: string
           updated_at?: string
           user_id?: string
