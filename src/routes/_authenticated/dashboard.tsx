@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useT, LangToggle } from "@/lib/i18n";
 import { ar as arLocale } from "date-fns/locale";
 import { useEffect, useRef } from "react";
+import { thumbUrl } from "@/lib/thumb-url";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Your posts — Quill" }] }),
@@ -115,7 +116,18 @@ function Dashboard() {
                     params={{ postId: p.id }}
                     className="flex min-w-0 flex-1 items-start gap-4"
                   >
-                    <FileText className="mt-1 h-5 w-5 shrink-0 text-ink/40" strokeWidth={1.5} />
+                    {(p as any).thumbnail_url ? (
+                      <img
+                        src={thumbUrl(p.id, (p as any).thumbnail_url)}
+                        alt=""
+                        loading="lazy"
+                        className="h-14 w-24 shrink-0 rounded-md object-cover ring-1 ring-ink/10 sm:h-16 sm:w-28"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-24 shrink-0 items-center justify-center rounded-md bg-ink/5 ring-1 ring-ink/10 sm:h-16 sm:w-28">
+                        <FileText className="h-5 w-5 text-ink/40" strokeWidth={1.5} />
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-serif text-xl">{p.title}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/50">
