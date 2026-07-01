@@ -55,7 +55,7 @@ export const getPublicPostByShareId = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ shareId: z.string().min(4) }).parse(input))
   .handler(async ({ data }) => {
     const { data: row, error } = await sb(publicSupabase())
-      .select("id, share_id, title, content, likes_count, comments_count, updated_at, user_id, is_public")
+      .select("id, share_id, title, content, likes_count, comments_count, updated_at, user_id, is_public, thumbnail_url")
       .eq("share_id", data.shareId)
       .eq("is_public", true)
       .maybeSingle();
