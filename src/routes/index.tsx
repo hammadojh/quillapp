@@ -7,6 +7,7 @@ import { PenLine, Sparkle, Share2, ArrowRight, Heart, MessageCircle } from "luci
 import { useT, LangToggle } from "@/lib/i18n";
 import { listLandingPosts } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { thumbUrl } from "@/lib/thumb-url";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -114,8 +115,15 @@ function Index() {
                 key={p.id}
                 to="/p/$shareId"
                 params={{ shareId: p.share_id ?? "" }}
-                className="group flex flex-col rounded-xl border border-ink/10 bg-white p-5 transition hover:border-ink/30 hover:shadow-sm"
+                className="group flex flex-col overflow-hidden rounded-xl border border-ink/10 bg-white transition hover:border-ink/30 hover:shadow-sm"
               >
+                <img
+                  src={thumbUrl(p.id, (p as any).thumbnail_url ?? p.updated_at)}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-[1200/630] w-full object-cover"
+                />
+                <div className="flex flex-1 flex-col p-5">
                 <h3 className="font-serif text-lg leading-snug text-ink group-hover:text-brand sm:text-xl">
                   {p.title}
                 </h3>
@@ -129,6 +137,7 @@ function Index() {
                     <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" /> {p.likes_count}</span>
                     <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" /> {p.comments_count}</span>
                   </span>
+                </div>
                 </div>
               </Link>
             ))}
