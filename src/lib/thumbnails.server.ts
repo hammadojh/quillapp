@@ -5,11 +5,6 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const BUCKET = "post-thumbnails";
 
-function isRTL(text: string): boolean {
-  // Arabic + Hebrew Unicode ranges
-  return /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
-}
-
 function styleForShareId(shareId: string): { artist: string; description: string } {
   const styles = [
     { artist: "Vincent van Gogh", description: "swirling, expressive post-impressionist brushstrokes with thick impasto, vibrant yellows, deep cobalt blues and cypress greens, dreamlike starry atmosphere" },
