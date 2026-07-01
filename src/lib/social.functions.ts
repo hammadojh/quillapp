@@ -42,7 +42,7 @@ async function attachAuthors(rows: any[]): Promise<PostSummary[]> {
 
 export const listLandingPosts = createServerFn({ method: "GET" }).handler(async () => {
   const { data, error } = await sb(publicSupabase())
-    .select("id, share_id, title, content, likes_count, comments_count, updated_at, user_id")
+    .select("id, share_id, title, content, likes_count, comments_count, updated_at, user_id, thumbnail_url")
     .eq("is_public", true)
     .order("updated_at", { ascending: false })
     .limit(9);
@@ -75,7 +75,7 @@ export const getProfileByUsername = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!prof) return null;
     const { data: posts } = await sb(publicSupabase())
-      .select("id, share_id, title, content, likes_count, comments_count, updated_at, user_id")
+      .select("id, share_id, title, content, likes_count, comments_count, updated_at, user_id, thumbnail_url")
       .eq("user_id", prof.user_id)
       .eq("is_public", true)
       .order("updated_at", { ascending: false });
