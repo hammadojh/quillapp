@@ -178,5 +178,14 @@ export const generateBlogPost = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (updateError) throw new Error(updateError.message);
 
+    const { data: row } = await tbl(context.supabase)
+      .select("is_public")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (row?.is_public) {
+      const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
+      ensurePostThumbnailBackground(data.id);
+    }
+
     return { content: md, title };
   });
