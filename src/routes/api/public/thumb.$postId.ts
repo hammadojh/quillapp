@@ -3,9 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 async function serveDefaultPng(): Promise<Response> {
   try {
     // Read the bundled default from the public/ assets served by the same origin.
-    const res = await fetch("https://quillapp.lovable.app/og-default.png", {
-      cf: { cacheTtl: 3600 } as any,
-    });
+    const res = await fetch("https://quillapp.lovable.app/og-default.png");
     if (res.ok) {
       const buf = await res.arrayBuffer();
       return new Response(buf, {
