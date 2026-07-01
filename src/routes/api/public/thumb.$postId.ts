@@ -1,5 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+async function serveDefaultPng(): Promise<Response> {
+  try {
+    // Read the bundled default from the public/ assets served by the same origin.
+    const res = await fetch("https://quillapp.lovable.app/og-default.png");
+    if (res.ok) {
+      const buf = await res.arrayBuffer();
+      return new Response(buf, {
+        status: 200,
+        headers: {
+          "Content-Type": "image/png",
+          // Short cache so a real thumb can replace it soon after generation.
+          "Cache-Control": "public, max-age=300",
+        },
+      });
+    }
+  } catch { /* noop */ }
+  return new Response("Not found", { status: 404 });
+}
+
 export const Route = createFileRoute("/api/public/thumb/$postId")({
   server: {
     handlers: {
@@ -9,7 +28,7 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
         const postId = raw.replace(/\.png$/i, "");
         const uuid = /^[0-9a-f-]{36}$/i;
         if (!uuid.test(postId)) {
-          return Response.redirect("https://quillapp.lovable.app/og-default.png", 302);
+          return serveDefaultPng();
         }
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -22,7 +41,7 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
               const { ensurePostThumbnailBackground } = await import("@/lib/thumbnails.server");
               ensurePostThumbnailBackground(postId);
             } catch { /* noop */ }
-            return Response.redirect("https://quillapp.lovable.app/og-default.png", 302);
+            return serveDefaultPng();
           }
           const buf = await data.arrayBuffer();
           return new Response(buf, {
@@ -33,7 +52,7 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
             },
           });
         } catch {
-          return Response.redirect("https://quillapp.lovable.app/og-default.png", 302);
+          return serveDefaultPng();
         }
       },
     },
