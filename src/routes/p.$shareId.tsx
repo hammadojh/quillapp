@@ -16,6 +16,7 @@ import {
 } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useT, LangToggle } from "@/lib/i18n";
+import { thumbUrl } from "@/lib/thumb-url";
 
 function buildExcerpt(content: string, n = 180): string {
   const stripped = (content ?? "")
@@ -106,6 +107,13 @@ function PublicPostPage() {
     <div className="min-h-screen bg-paper text-ink">
       <Topbar />
       <main className="mx-auto max-w-2xl px-4 pb-24 pt-6 sm:px-6">
+        {(post as any).thumbnail_url && (
+          <img
+            src={thumbUrl(post.id, (post as any).thumbnail_url)}
+            alt=""
+            className="mb-8 aspect-[1200/630] w-full rounded-xl object-cover ring-1 ring-ink/10"
+          />
+        )}
         <div className="mb-6 text-sm text-ink/60">
           {t("public.by")}{" "}
           {post.author?.username ? (
