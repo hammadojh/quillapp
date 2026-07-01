@@ -5,41 +5,34 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const BUCKET = "post-thumbnails";
 
-function isRTL(text: string): boolean {
-  // Arabic + Hebrew Unicode ranges
-  return /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(text);
-}
-
-function accentForShareId(shareId: string): string {
-  const palette = [
-    "deep navy blue",
-    "burnt sienna orange",
-    "forest green",
-    "burgundy red",
-    "warm ochre yellow",
-    "dusty rose",
-    "muted teal",
-    "plum purple",
+function styleForShareId(shareId: string): { artist: string; description: string } {
+  const styles = [
+    { artist: "Vincent van Gogh", description: "swirling, expressive post-impressionist brushstrokes with thick impasto, vibrant yellows, deep cobalt blues and cypress greens, dreamlike starry atmosphere" },
+    { artist: "Claude Monet", description: "soft impressionist brushwork, dappled light, pastel lavenders, pinks and water-lily greens, hazy plein-air atmosphere" },
+    { artist: "Katsushika Hokusai", description: "Japanese ukiyo-e woodblock print, bold flat outlines, indigo prussian blue waves, cream negative space, Edo-period elegance" },
+    { artist: "Wassily Kandinsky", description: "abstract geometric composition, circles, triangles and musical lines, bold primary colors dancing on warm cream" },
+    { artist: "Gustav Klimt", description: "art nouveau with luminous gold leaf patterns, ornate mosaic motifs, deep jewel tones, byzantine decorative richness" },
+    { artist: "Henri Matisse", description: "bold Fauvist cut-paper shapes, joyful organic forms, saturated coral, viridian and ultramarine on off-white" },
+    { artist: "Georgia O'Keeffe", description: "large-scale close-up organic abstraction, soft desert palette of bone white, dusty rose and sun-baked ochre, sensual curved forms" },
+    { artist: "Salvador Dalí", description: "surrealist dreamscape, melting symbolic forms on a vast horizon, warm burnt sienna sky, meticulous painterly realism with impossible geometry" },
+    { artist: "Paul Klee", description: "playful modernist grid of muted watercolor squares, childlike symbolic shapes, chalky pastel palette on textured paper" },
+    { artist: "Hilma af Klint", description: "spiritual geometric abstraction, concentric circles and botanical diagrams, soft pastel palette with esoteric symbolism" },
+    { artist: "J.M.W. Turner", description: "romantic atmospheric seascape, luminous golden mist dissolving into stormy blues, sublime painterly light" },
+    { artist: "Hieronymus Bosch", description: "intricate medieval symbolic tableau, tiny surreal creatures and dreamlike landscapes, muted earthy palette" },
   ];
   let h = 0;
   for (const ch of shareId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return palette[h % palette.length];
+  return styles[h % styles.length];
 }
 
-function buildPrompt(opts: { title: string; author: string | null; accent: string }): string {
-  const { title, author, accent } = opts;
-  const rtl = isRTL(title);
-  const alignment = rtl ? "right-aligned, written in Arabic script" : "left-aligned, written in English";
-  const byline = author ? `Small byline text underneath reading exactly: "by ${author}".` : "";
+function buildPrompt(opts: { title: string; author: string | null; style: { artist: string; description: string } }): string {
+  const { title, style } = opts;
   return [
-    `A refined editorial magazine cover thumbnail, 1200x630 wide-format landscape.`,
-    `Warm off-white paper background with subtle grain texture.`,
-    `A slim ${accent} accent bar or geometric flourish on one edge.`,
-    `Large elegant serif typography, ${alignment}, showing this exact title verbatim with no changes, no extra words, no translation: "${title}".`,
-    byline,
-    `Minimal, sophisticated, no photos, no people, no logos, no icons, no watermarks.`,
-    `Editorial layout with generous whitespace. Typography must be perfectly legible and correctly spelled.`,
-  ].filter(Boolean).join(" ");
+    `A metaphorical fine-art painting, 1200x630 wide-format landscape, rendered in the unmistakable style of ${style.artist}: ${style.description}.`,
+    `The painting should visually evoke, as a poetic metaphor, the essence of an article titled: "${title}". Interpret the title symbolically through imagery, mood, and composition — do NOT render any text, letters, words, captions, titles, signatures or watermarks anywhere in the image.`,
+    `Gallery-quality, richly textured brushwork, evocative and emotionally resonant, painterly composition with clear focal point.`,
+    `Absolutely no typography, no writing, no logos, no borders — pure painted image only.`,
+  ].join(" ");
 }
 
 async function generatePngBytes(prompt: string): Promise<Uint8Array> {
@@ -81,8 +74,8 @@ export async function ensurePostThumbnail(postId: string): Promise<void> {
     .maybeSingle();
   const author = prof?.display_name || prof?.username || null;
 
-  const accent = accentForShareId(post.share_id ?? post.id);
-  const prompt = buildPrompt({ title: post.title, author, accent });
+  const style = styleForShareId(post.share_id ?? post.id);
+  const prompt = buildPrompt({ title: post.title, author, style });
   const bytes = await generatePngBytes(prompt);
 
   const path = `${post.id}.png`;
