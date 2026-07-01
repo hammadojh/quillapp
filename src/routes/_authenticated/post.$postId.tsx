@@ -775,6 +775,35 @@ function GeneratedView({
             </div>
           </div>
         )}
+        {isPublic && (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-ink/10 bg-paper p-3 sm:flex-row sm:items-center">
+            <div className="h-20 w-36 shrink-0 overflow-hidden rounded-md border border-ink/10 bg-white">
+              {thumbStamp ? (
+                <img
+                  src={thumbUrl(post.id, thumbStamp)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[10px] text-ink/40">
+                  {t("post.thumb.none")}
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-medium">{t("post.thumb.title")}</div>
+              <div className="text-xs text-ink/55">{t("post.thumb.hint")}</div>
+            </div>
+            <button
+              onClick={regenThumb}
+              disabled={thumbBusy}
+              className="flex items-center justify-center gap-1.5 rounded-md border border-ink/15 px-3 py-2 text-xs hover:bg-ink/5 disabled:opacity-60"
+            >
+              {thumbBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {thumbBusy ? t("post.thumb.working") : t("post.thumb.regen")}
+            </button>
+          </div>
+        )}
       </div>
 
       {editing ? (
