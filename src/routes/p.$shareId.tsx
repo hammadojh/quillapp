@@ -33,23 +33,27 @@ export const Route = createFileRoute("/p/$shareId")({
     if (!post) return { post: null as null };
     return {
       post: {
+        id: post.id,
         title: post.title,
         excerpt: buildExcerpt(post.content),
         author:
           post.author?.display_name || post.author?.username || null,
+        thumbStamp: (post as any).thumbnail_url ?? null,
       },
     };
   },
   head: ({ params, loaderData }) => {
     const url = `https://quillapp.lovable.app/p/${params.shareId}`;
-    const ogImage = `https://quillapp.lovable.app/og-default.png`;
     if (!loaderData?.post) {
       return {
         meta: [{ title: "Read — Quill" }],
         links: [{ rel: "canonical", href: url }],
       };
     }
-    const { title, excerpt, author } = loaderData.post;
+    const { id, title, excerpt, author, thumbStamp } = loaderData.post;
+    const ogImage = thumbStamp
+      ? `https://quillapp.lovable.app/api/public/thumb/${id}.png?v=${encodeURIComponent(thumbStamp)}`
+      : `https://quillapp.lovable.app/og-default.png`;
     const fullTitle = author ? `${title} — ${author}` : title;
     return {
       meta: [

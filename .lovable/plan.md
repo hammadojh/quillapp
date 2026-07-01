@@ -1,68 +1,53 @@
-## Home page redesign + social features
+## Goal
+Give every shared article its own PNG preview card (title + author) instead of the single static `og-default.png`.
 
-Big shift from a private drafting tool into a **public, social writing platform**. Here is what I'll build, in order.
+## Approach
+Skip on-the-fly WASM PNG rendering (blocked on Cloudflare Workers — that's why the last attempt failed). Instead: generate the thumbnail once, store the finished PNG in Lovable Cloud Storage, and point `og:image` at the stable public URL.
 
-### 1. Database changes (one migration)
+Two options for how the PNG is produced — pick one:
 
-- `posts` — add `is_public boolean default false`, `slug text unique`, `share_id text unique` (short id for `/p/<id>`), `likes_count int default 0`, `comments_count int default 0`.
-- `profiles` — `user_id uuid pk → auth.users`, `username text unique`, `display_name text`, `bio text`, `avatar_url text`. Auto-created on signup via trigger.
-- `post_likes` — `(post_id, user_id)` unique, with triggers to keep `posts.likes_count` in sync.
-- `post_comments` — `id, post_id, user_id, content, created_at`, with triggers for `comments_count`.
-- RLS:
-  - Public can `SELECT` posts where `is_public = true`, all profiles, all comments, all likes.
-  - Authenticated users manage their own posts/profile/likes/comments.
-- Sample data: mark the 6 best existing Arabic posts as public so the landing page has real content immediately.
+**Option A — AI-generated editorial card (recommended)**
+Use the AI Gateway image endpoint (`openai/gpt-image-2`, `quality: "low"`, 1536x1024 → resized/cropped to 1200x630) with a prompt that bakes in the article title, author name, and a magazine-cover art direction (serif type, warm paper background, subtle accent). Feels personalized and on-brand; no font/RTL headaches because the model renders the text itself. Cost: ~1 low-quality image per published post.
 
-### 2. Landing page redesign (`/`)
+**Option B — Templated card via HTML → screenshot**
+Not viable in this stack (no headless browser on Workers). Skipping.
 
-- **Hero with a textbox at the top** like ChatGPT/Claude — "ما الذي تريد الكتابة عنه؟" / "What do you want to write about?" with a Start button.
-  - Typing + clicking Start drops the topic into `sessionStorage` and routes to `/auth` (or `/dashboard → new post` if already signed in). The new-post flow picks it up and uses it as the first interview message.
-- Section: **"اقرأ ما كتبه الخبراء"** — grid of 6 sample public posts (title, author, excerpt, like count). Each links to `/p/<share_id>`.
-- Keep the "how it works" 3-step strip, simplified.
-- Mobile-first, RTL-correct, same paper/ink theme.
+Going with **Option A**.
 
-### 3. Public post page (`/p/$shareId`)
+## Trigger
+Generate the thumbnail the first time a post is made public (and re-generate when the title changes on an already-public post). No generation for private posts — saves credits.
 
-- SSR-friendly, no auth required.
-- Renders the article as Markdown, shows author (links to profile), like button, share buttons, comments list + composer.
-- Unauthenticated users see "Sign in to like / comment" CTAs instead of disabled buttons.
-- Proper `<head>` meta (title, description, og:title, og:description) from post content.
+## Storage
+- New public Storage bucket `post-thumbnails`.
+- Object key: `${post.id}.png`.
+- Public read via bucket policy; writes only via server (service role).
+- Add `thumbnail_url TEXT` column on `posts` so the frontend/OG tags read a single field.
 
-### 4. Public profile page (`/u/$username`)
+## Server flow
+1. New server fn `ensurePostThumbnail({ postId })`:
+   - Loads post (title, author display name, share_id, is_public, thumbnail_url, updated_at).
+   - If not public → no-op.
+   - Builds prompt: editorial magazine cover, title text verbatim, small "by {author}" line, deterministic accent color from share_id, RTL-aware wording ("Arabic title, right-aligned" vs "English title, left-aligned") based on Unicode range of the title.
+   - Calls AI Gateway `/v1/images/generations` non-streaming (server-side, we just want the final bytes).
+   - Uploads base64 PNG to `post-thumbnails/${postId}.png` via `supabaseAdmin` storage.
+   - Writes public URL to `posts.thumbnail_url`.
+2. Hook into `setPostVisibility` (when flipping to public) and into `updatePost` (when title changes on a currently-public post) — call `ensurePostThumbnail` fire-and-forget so the UI stays snappy. Errors log but don't block.
+3. `p.$shareId.tsx` loader already fetches the post — extend it to return `thumbnail_url`. In `head()`, use `thumbnail_url` when present, fall back to `/og-default.png`.
 
-- Avatar, display name, bio.
-- Grid of that user's public posts.
-- "Edit profile" button only when viewing own profile.
+## Fallback
+If image generation fails or the post has no thumbnail yet, `og:image` stays on the static `og-default.png` — no broken previews.
 
-### 5. Post workspace updates (`/_authenticated/post/$postId`)
+## Cache-busting
+Append `?v={updated_at timestamp}` to the `og:image` URL so LinkedIn/X pick up the new card after a title edit (their own caches still apply — user must use the platform debuggers for already-shared links, same caveat as before).
 
-- New **Privacy toggle**: Private / Public. When made public, generate `share_id` + show the share link with copy button.
-- **Share link** card with copy button + existing X/LinkedIn share buttons now point at `/p/<share_id>`.
-- Small "View public page" link when public.
+## Files touched
+- New migration: add `thumbnail_url` column to `posts`; create `post-thumbnails` bucket + policies.
+- New: `src/lib/thumbnails.server.ts` (prompt + AI Gateway call + storage upload).
+- Edit: `src/lib/social.functions.ts` — call `ensurePostThumbnail` in `setPostVisibility`; return `thumbnail_url` from `getPublicPostByShareId`.
+- Edit: `src/lib/posts.functions.ts` — call `ensurePostThumbnail` from `updatePost` when title changed and post is public.
+- Edit: `src/routes/p.$shareId.tsx` — use `thumbnail_url` in `og:image` / `twitter:image` with cache-bust param.
 
-### 6. Dashboard updates
-
-- Each post row shows a Public/Private badge.
-- Add a top link to the user's own public profile.
-
-### 7. Auth flow change
-
-- After signup/signin, if `sessionStorage` has a pending topic from the landing hero, auto-create a new post with that topic as the first user message and route straight into the interview.
-- New users without a username are prompted once for a username (modal on dashboard).
-
-### Technical notes
-
-- All new server logic via `createServerFn` in `src/lib/*.functions.ts` (posts, profiles, likes, comments).
-- Public reads use a publishable-key server client + `TO anon` SELECT policies — no admin client for normal reads.
-- New routes: `src/routes/p.$shareId.tsx`, `src/routes/u.$username.tsx`, `src/routes/_authenticated/profile.tsx`.
-- i18n: add Arabic + English strings for every new label.
-- Likes/comments counts maintained by SQL triggers, not client logic.
-
-### Out of scope (will not do unless you ask)
-
-- Follows / notifications / feeds.
-- Rich-text comments (plain text only).
-- Image uploads for avatars (initials placeholder for now).
-- Search / discovery beyond the landing samples.
-
-Shall I proceed?
+## Notes for the user
+- Only public posts get a custom card (saves credits and matches the sharing surface).
+- First share of a post may show the default card for a few seconds while generation completes; refresh once and the personalized card appears.
+- Already-tweeted links stay cached on X/LinkedIn until refreshed in their debuggers.
