@@ -22,7 +22,7 @@ export const listPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await tbl(context.supabase)
-      .select("id, title, status, updated_at, created_at, is_public, share_id, likes_count, comments_count")
+      .select("id, title, status, updated_at, created_at, is_public, share_id, likes_count, comments_count, thumbnail_url")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []) as Array<
@@ -31,6 +31,7 @@ export const listPosts = createServerFn({ method: "GET" })
         share_id: string | null;
         likes_count: number;
         comments_count: number;
+        thumbnail_url: string | null;
       }
     >;
   });
