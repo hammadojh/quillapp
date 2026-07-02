@@ -2,21 +2,31 @@ import { createFileRoute } from "@tanstack/react-router";
 
 async function serveDefaultImage(): Promise<Response> {
   try {
-    // Read the bundled default from the public/ assets served by the same origin.
     const res = await fetch("https://quillapp.lovable.app/og-default.png");
     if (res.ok) {
       const buf = await res.arrayBuffer();
-      const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS, toResponseArrayBuffer } = await import("@/lib/share-image.server");
-      const jpg = pngBytesToSocialJpeg(buf, 82);
-      return new Response(toResponseArrayBuffer(jpg), {
-        status: 200,
-        headers: {
-          ...SOCIAL_IMAGE_HEADERS,
-          "Content-Length": String(jpg.byteLength),
-          // Short cache so a real thumb can replace it soon after generation.
-          "Cache-Control": "public, max-age=300",
-        },
-      });
+      try {
+        const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS, toResponseArrayBuffer } = await import("@/lib/share-image.server");
+        const jpg = pngBytesToSocialJpeg(buf, 82);
+        return new Response(toResponseArrayBuffer(jpg), {
+          status: 200,
+          headers: {
+            ...SOCIAL_IMAGE_HEADERS,
+            "Content-Length": String(jpg.byteLength),
+            "Cache-Control": "public, max-age=300",
+          },
+        });
+      } catch (e) {
+        console.error("[thumb] jpeg convert failed (default):", e);
+        return new Response(buf, {
+          status: 200,
+          headers: {
+            "Content-Type": "image/png",
+            "Content-Length": String(buf.byteLength),
+            "Cache-Control": "public, max-age=300",
+          },
+        });
+      }
     }
   } catch { /* noop */ }
   return new Response("Not found", { status: 404 });
@@ -47,17 +57,30 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
             return serveDefaultImage();
           }
           const buf = await data.arrayBuffer();
-          const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS, toResponseArrayBuffer } = await import("@/lib/share-image.server");
-          const jpg = pngBytesToSocialJpeg(buf, 82);
-          return new Response(toResponseArrayBuffer(jpg), {
-            status: 200,
-            headers: {
-              ...SOCIAL_IMAGE_HEADERS,
-              "Content-Length": String(jpg.byteLength),
-              "Cache-Control": "public, max-age=31536000, immutable",
-            },
-          });
-        } catch {
+          try {
+            const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS, toResponseArrayBuffer } = await import("@/lib/share-image.server");
+            const jpg = pngBytesToSocialJpeg(buf, 82);
+            return new Response(toResponseArrayBuffer(jpg), {
+              status: 200,
+              headers: {
+                ...SOCIAL_IMAGE_HEADERS,
+                "Content-Length": String(jpg.byteLength),
+                "Cache-Control": "public, max-age=31536000, immutable",
+              },
+            });
+          } catch (e) {
+            console.error("[thumb] jpeg convert failed:", e);
+            return new Response(buf, {
+              status: 200,
+              headers: {
+                "Content-Type": "image/png",
+                "Content-Length": String(buf.byteLength),
+                "Cache-Control": "public, max-age=31536000, immutable",
+              },
+            });
+          }
+        } catch (e) {
+          console.error("[thumb] fetch failed:", e);
           return serveDefaultImage();
         }
       },
