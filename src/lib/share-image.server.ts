@@ -43,6 +43,12 @@ export function pngBytesToSocialJpeg(bytes: ArrayBuffer | Uint8Array, quality = 
   return jpeg.encode({ data: Buffer.from(out), width: TARGET_WIDTH, height: TARGET_HEIGHT }, quality).data;
 }
 
+export function toResponseArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
 export const SOCIAL_IMAGE_HEADERS = {
   "Content-Type": "image/jpeg",
   "Content-Disposition": "inline",

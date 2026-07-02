@@ -6,9 +6,9 @@ async function serveDefaultImage(): Promise<Response> {
     const res = await fetch("https://quillapp.lovable.app/og-default.png");
     if (res.ok) {
       const buf = await res.arrayBuffer();
-      const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS } = await import("@/lib/share-image.server");
+      const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS, toResponseArrayBuffer } = await import("@/lib/share-image.server");
       const jpg = pngBytesToSocialJpeg(buf, 82);
-      return new Response(jpg, {
+      return new Response(toResponseArrayBuffer(jpg), {
         status: 200,
         headers: {
           ...SOCIAL_IMAGE_HEADERS,
@@ -46,9 +46,9 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
             return serveDefaultImage();
           }
           const buf = await data.arrayBuffer();
-          const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS } = await import("@/lib/share-image.server");
+          const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS, toResponseArrayBuffer } = await import("@/lib/share-image.server");
           const jpg = pngBytesToSocialJpeg(buf, 82);
-          return new Response(jpg, {
+          return new Response(toResponseArrayBuffer(jpg), {
             status: 200,
             headers: {
               ...SOCIAL_IMAGE_HEADERS,
