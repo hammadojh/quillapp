@@ -15,3 +15,11 @@ declare module "jpeg-js" {
   };
   export default jpeg;
 }
+
+declare module "upng-js" {
+  const UPNG: {
+    decode(buffer: ArrayBuffer): { width: number; height: number; depth: number; ctype: number; frames: unknown[]; tabs: unknown; data: Uint8Array };
+    toRGBA8(img: unknown): ArrayBuffer[];
+  };
+  export default UPNG;
+}
