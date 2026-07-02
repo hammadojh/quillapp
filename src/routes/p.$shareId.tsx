@@ -53,7 +53,7 @@ export const Route = createFileRoute("/p/$shareId")({
     }
     const { id, title, excerpt, author, thumbStamp } = loaderData.post;
     const ogImage = thumbStamp
-      ? `https://quillapp.lovable.app/api/public/thumb/${id}.png?v=${encodeURIComponent(thumbStamp)}`
+      ? `https://quillapp.lovable.app/api/public/thumb/${id}.jpg?v=${encodeURIComponent(thumbStamp)}`
       : `https://quillapp.lovable.app/og-default.png`;
     const fullTitle = author ? `${title} — ${author}` : title;
     return {
@@ -65,6 +65,7 @@ export const Route = createFileRoute("/p/$shareId")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: url },
         { property: "og:image", content: ogImage },
+        { property: "og:image:type", content: thumbStamp ? "image/jpeg" : "image/png" },
         { property: "og:image:width", content: "1200" },
         { property: "og:image:height", content: "630" },
         { property: "og:image:alt", content: fullTitle },
