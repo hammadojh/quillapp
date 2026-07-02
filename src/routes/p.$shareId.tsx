@@ -40,6 +40,7 @@ export const Route = createFileRoute("/p/$shareId")({
         author:
           post.author?.display_name || post.author?.username || null,
         thumbStamp: (post as any).thumbnail_url ?? null,
+        updatedAt: post.updated_at,
       },
     };
   },
@@ -51,10 +52,9 @@ export const Route = createFileRoute("/p/$shareId")({
         links: [{ rel: "canonical", href: url }],
       };
     }
-    const { id, title, excerpt, author, thumbStamp } = loaderData.post;
-    const ogImage = thumbStamp
-      ? `https://quillapp.lovable.app/api/public/thumb/${id}.png?v=${encodeURIComponent(thumbStamp)}`
-      : `https://quillapp.lovable.app/og-default.png`;
+    const { id, title, excerpt, author, thumbStamp, updatedAt } = loaderData.post;
+    const imageStamp = thumbStamp || updatedAt;
+    const ogImage = `https://quillapp.lovable.app/api/public/thumb/${id}.jpg?v=${encodeURIComponent(imageStamp)}`;
     const fullTitle = author ? `${title} — ${author}` : title;
     return {
       meta: [
@@ -65,6 +65,7 @@ export const Route = createFileRoute("/p/$shareId")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: url },
         { property: "og:image", content: ogImage },
+        { property: "og:image:type", content: "image/jpeg" },
         { property: "og:image:width", content: "1200" },
         { property: "og:image:height", content: "630" },
         { property: "og:image:alt", content: fullTitle },

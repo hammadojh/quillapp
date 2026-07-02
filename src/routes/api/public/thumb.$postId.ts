@@ -1,15 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-async function serveDefaultPng(): Promise<Response> {
+async function serveDefaultImage(): Promise<Response> {
   try {
     // Read the bundled default from the public/ assets served by the same origin.
     const res = await fetch("https://quillapp.lovable.app/og-default.png");
     if (res.ok) {
       const buf = await res.arrayBuffer();
-      return new Response(buf, {
+      const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS, toResponseArrayBuffer } = await import("@/lib/share-image.server");
+      const jpg = pngBytesToSocialJpeg(buf, 82);
+      return new Response(toResponseArrayBuffer(jpg), {
         status: 200,
         headers: {
-          "Content-Type": "image/png",
+          ...SOCIAL_IMAGE_HEADERS,
+          "Content-Length": String(jpg.byteLength),
           // Short cache so a real thumb can replace it soon after generation.
           "Cache-Control": "public, max-age=300",
         },
@@ -24,11 +27,11 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
     handlers: {
       GET: async ({ params }) => {
         const raw = params.postId ?? "";
-        // Accept "<uuid>" or "<uuid>.png"
-        const postId = raw.replace(/\.png$/i, "");
+        // Accept "<uuid>", "<uuid>.jpg", or the old "<uuid>.png" URLs.
+        const postId = raw.replace(/\.(?:png|jpe?g)$/i, "");
         const uuid = /^[0-9a-f-]{36}$/i;
         if (!uuid.test(postId)) {
-          return serveDefaultPng();
+          return serveDefaultImage();
         }
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -41,18 +44,21 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
               const { ensurePostThumbnailBackground } = await import("@/lib/thumbnails.server");
               ensurePostThumbnailBackground(postId);
             } catch { /* noop */ }
-            return serveDefaultPng();
+            return serveDefaultImage();
           }
           const buf = await data.arrayBuffer();
-          return new Response(buf, {
+          const { pngBytesToSocialJpeg, SOCIAL_IMAGE_HEADERS, toResponseArrayBuffer } = await import("@/lib/share-image.server");
+          const jpg = pngBytesToSocialJpeg(buf, 82);
+          return new Response(toResponseArrayBuffer(jpg), {
             status: 200,
             headers: {
-              "Content-Type": "image/png",
+              ...SOCIAL_IMAGE_HEADERS,
+              "Content-Length": String(jpg.byteLength),
               "Cache-Control": "public, max-age=31536000, immutable",
             },
           });
         } catch {
-          return serveDefaultPng();
+          return serveDefaultImage();
         }
       },
     },
