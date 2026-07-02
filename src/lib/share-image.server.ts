@@ -1,4 +1,4 @@
-import { PNG } from "pngjs";
+import UPNG from "upng-js";
 import jpeg from "jpeg-js";
 
 const TARGET_WIDTH = 1200;
@@ -23,7 +23,12 @@ function cropToSocialRatio(image: DecodedPng) {
 
 export function pngBytesToSocialJpeg(bytes: ArrayBuffer | Uint8Array, quality = 82): Uint8Array {
   const input = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-  const png = PNG.sync.read(Buffer.from(input)) as DecodedPng;
+  // Ensure a standalone ArrayBuffer (UPNG needs an ArrayBuffer, not a view).
+  const ab = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength) as ArrayBuffer;
+  const decoded = UPNG.decode(ab);
+  // Convert to RGBA8 frames.
+  const rgba = new Uint8Array(UPNG.toRGBA8(decoded)[0]);
+  const png: DecodedPng = { width: decoded.width, height: decoded.height, data: rgba };
   const crop = cropToSocialRatio(png);
   const out = new Uint8Array(TARGET_WIDTH * TARGET_HEIGHT * 4);
 
