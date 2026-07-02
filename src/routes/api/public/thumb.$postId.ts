@@ -12,6 +12,7 @@ async function serveDefaultImage(): Promise<Response> {
         status: 200,
         headers: {
           ...SOCIAL_IMAGE_HEADERS,
+          "Content-Length": String(jpg.byteLength),
           // Short cache so a real thumb can replace it soon after generation.
           "Cache-Control": "public, max-age=300",
         },
@@ -52,6 +53,7 @@ export const Route = createFileRoute("/api/public/thumb/$postId")({
             status: 200,
             headers: {
               ...SOCIAL_IMAGE_HEADERS,
+              "Content-Length": String(jpg.byteLength),
               "Cache-Control": "public, max-age=31536000, immutable",
             },
           });
