@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Heart, MessageCircle, Twitter, Linkedin, ArrowLeft, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Eye, Twitter, Linkedin, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPublicPostByShareId,
@@ -13,6 +13,7 @@ import {
   addComment,
   getLikeState,
   deleteComment,
+  incrementPostView,
 } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useT, LangToggle } from "@/lib/i18n";
@@ -84,10 +85,19 @@ function PublicPostPage() {
   const { t, lang } = useT();
   const { shareId } = Route.useParams();
   const getFn = useServerFn(getPublicPostByShareId);
+  const bumpFn = useServerFn(incrementPostView);
   const { data: post, isLoading } = useQuery({
     queryKey: ["public-post", shareId],
     queryFn: () => getFn({ data: { shareId } }),
   });
+
+  useEffect(() => {
+    if (!post?.id) return;
+    const key = `quill.viewed.${post.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    bumpFn({ data: { postId: post.id } }).catch(() => {});
+  }, [post?.id, bumpFn]);
 
   if (isLoading) return <div className="min-h-screen bg-paper p-10 text-ink/50">…</div>;
   if (!post) {
@@ -135,7 +145,7 @@ function PublicPostPage() {
         </article>
 
         <ShareRow shareId={shareId} title={post.title} />
-        <LikeRow postId={post.id} initialCount={post.likes_count} />
+        <LikeRow postId={post.id} initialCount={post.likes_count} viewsCount={(post as any).views_count ?? 0} />
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
       </main>
