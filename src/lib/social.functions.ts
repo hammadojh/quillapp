@@ -66,6 +66,14 @@ export const getPublicPostByShareId = createServerFn({ method: "GET" })
     return withAuthor;
   });
 
+export const incrementPostView = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ postId: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { error } = await (publicSupabase() as any).rpc("increment_post_views", { _post_id: data.postId });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const getProfileByUsername = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ username: z.string().min(1) }).parse(input))
   .handler(async ({ data }) => {
