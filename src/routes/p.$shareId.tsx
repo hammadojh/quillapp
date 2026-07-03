@@ -144,6 +144,9 @@ function PublicPostPage() {
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
         </article>
 
+        <p className="mt-10 text-center text-xs text-ink/40 italic">
+          {t("public.disclaimer")}
+        </p>
         <ShareRow shareId={shareId} title={post.title} />
         <LikeRow postId={post.id} initialCount={post.likes_count} viewsCount={(post as any).views_count ?? 0} />
         <Comments postId={post.id} initialCount={post.comments_count} />

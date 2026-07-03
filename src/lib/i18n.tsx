@@ -245,6 +245,7 @@ const dicts: Record<Lang, Dict> = {
     "public.likes": "{n} likes",
     "public.comments.count": "{n} comments",
     "public.by": "by",
+    "public.disclaimer": "Original ideas by the author. Editing and artistic writing assisted by Quill.",
     "public.notfound": "This post isn't available or is no longer public.",
     "public.cta.title": "Got an original thought? We'd love to hear it.",
     "public.cta.body": "Turn your expertise into a polished article in under 5 minutes — Quill interviews you and writes it for you.",
