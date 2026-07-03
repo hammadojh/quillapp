@@ -69,7 +69,8 @@ export const getPublicPostByShareId = createServerFn({ method: "GET" })
 export const incrementPostView = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ postId: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
-    const { error } = await (publicSupabase() as any).rpc("increment_post_views", { _post_id: data.postId });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any).rpc("increment_post_views", { _post_id: data.postId });
     if (error) throw new Error(error.message);
     return { ok: true };
   });

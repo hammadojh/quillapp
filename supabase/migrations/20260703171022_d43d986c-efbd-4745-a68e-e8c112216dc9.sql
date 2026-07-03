@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.increment_post_views(uuid) FROM anon, authenticated, PUBLIC;
