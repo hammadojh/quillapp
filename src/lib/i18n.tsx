@@ -116,6 +116,7 @@ const dicts: Record<Lang, Dict> = {
     "public.likes": "{n} إعجاب",
     "public.comments.count": "{n} تعليق",
     "public.by": "بقلم",
+    "public.disclaimer": "الأفكار الأصلية من المؤلف. التحرير والصياغة الفنية بمساعدة كويل.",
     "public.notfound": "هذا المقال غير متاح أو لم يعد عاماً.",
     "public.cta.title": "لديك فكرة أصلية؟ يهمّنا أن نسمعها.",
     "public.cta.body": "حوّل خبرتك إلى مقال مصقول في أقل من ٥ دقائق — يحاورك كويل ويكتب نيابةً عنك.",
