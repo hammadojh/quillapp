@@ -223,7 +223,7 @@ function useAuthed() {
   return authed;
 }
 
-function LikeRow({ postId, initialCount }: { postId: string; initialCount: number }) {
+function LikeRow({ postId, initialCount, viewsCount }: { postId: string; initialCount: number; viewsCount: number }) {
   const { t } = useT();
   const authed = useAuthed();
   const navigate = useNavigate();
@@ -267,6 +267,9 @@ function LikeRow({ postId, initialCount }: { postId: string; initialCount: numbe
       >
         <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} /> {count}
       </button>
+      <span className="flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-4 py-2 text-sm text-ink/70">
+        <Eye className="h-4 w-4" /> {viewsCount}
+      </span>
       {!authed && <span className="text-xs text-ink/50">{t("public.signin.like")}</span>}
     </div>
   );
