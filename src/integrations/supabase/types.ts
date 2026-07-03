@@ -90,6 +90,7 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          views_count: number
         }
         Insert: {
           comments_count?: number
@@ -105,6 +106,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id: string
+          views_count?: number
         }
         Update: {
           comments_count?: number
@@ -120,6 +122,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          views_count?: number
         }
         Relationships: []
       }
@@ -158,7 +161,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_post_views: { Args: { _post_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

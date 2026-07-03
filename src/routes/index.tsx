@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { PenLine, Sparkle, Share2, ArrowRight, Heart, MessageCircle } from "lucide-react";
+import { PenLine, Sparkle, Share2, ArrowRight, Heart, MessageCircle, Eye } from "lucide-react";
 import { useT, LangToggle } from "@/lib/i18n";
 import { listLandingPosts } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,6 +136,7 @@ function Index() {
                   <span className="flex items-center gap-3">
                     <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" /> {p.likes_count}</span>
                     <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" /> {p.comments_count}</span>
+                    <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> {(p as any).views_count ?? 0}</span>
                   </span>
                 </div>
                 </div>
