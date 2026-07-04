@@ -268,7 +268,7 @@ function EngagementBar({
   };
 
   return (
-    <div className="mt-10">
+    <div id="engagement-bar" className="mt-10">
       <button
         onClick={onShare}
         className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:opacity-90"
