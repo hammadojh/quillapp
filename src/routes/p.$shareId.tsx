@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Heart, MessageCircle, Eye, Share2, ArrowLeft, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Eye, Share2, ArrowLeft, Loader2, Mic } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPublicPostByShareId,
