@@ -11,6 +11,7 @@ type PostSummary = {
   likes_count: number;
   comments_count: number;
   views_count: number;
+  shares_count: number;
   updated_at: string;
   user_id: string;
   author?: { username: string; display_name: string | null } | null;
@@ -43,7 +44,7 @@ async function attachAuthors(rows: any[]): Promise<PostSummary[]> {
 
 export const listLandingPosts = createServerFn({ method: "GET" }).handler(async () => {
   const { data, error } = await sb(publicSupabase())
-    .select("id, share_id, title, content, likes_count, comments_count, views_count, updated_at, user_id, thumbnail_url")
+    .select("id, share_id, title, content, likes_count, comments_count, views_count, shares_count, updated_at, user_id, thumbnail_url")
     .eq("is_public", true)
     .eq("in_feed", true)
     .order("updated_at", { ascending: false })
@@ -57,7 +58,7 @@ export const getPublicPostByShareId = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ shareId: z.string().min(4) }).parse(input))
   .handler(async ({ data }) => {
     const { data: row, error } = await sb(publicSupabase())
-      .select("id, share_id, title, content, likes_count, comments_count, views_count, updated_at, user_id, is_public, thumbnail_url")
+      .select("id, share_id, title, content, likes_count, comments_count, views_count, shares_count, updated_at, user_id, is_public, thumbnail_url")
       .eq("share_id", data.shareId)
       .eq("is_public", true)
       .maybeSingle();
@@ -76,6 +77,15 @@ export const incrementPostView = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const incrementPostShare = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ postId: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any).rpc("increment_post_shares", { _post_id: data.postId });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const getProfileByUsername = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ username: z.string().min(1) }).parse(input))
   .handler(async ({ data }) => {
@@ -86,7 +96,7 @@ export const getProfileByUsername = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!prof) return null;
     const { data: posts } = await sb(publicSupabase())
-      .select("id, share_id, title, content, likes_count, comments_count, views_count, updated_at, user_id, thumbnail_url")
+      .select("id, share_id, title, content, likes_count, comments_count, views_count, shares_count, updated_at, user_id, thumbnail_url")
       .eq("user_id", prof.user_id)
       .eq("is_public", true)
       .eq("in_feed", true)

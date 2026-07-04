@@ -86,6 +86,7 @@ export type Database = {
           is_public: boolean
           likes_count: number
           share_id: string | null
+          shares_count: number
           status: string
           thumbnail_url: string | null
           title: string
@@ -103,6 +104,7 @@ export type Database = {
           is_public?: boolean
           likes_count?: number
           share_id?: string | null
+          shares_count?: number
           status?: string
           thumbnail_url?: string | null
           title?: string
@@ -120,6 +122,7 @@ export type Database = {
           is_public?: boolean
           likes_count?: number
           share_id?: string | null
+          shares_count?: number
           status?: string
           thumbnail_url?: string | null
           title?: string
@@ -164,6 +167,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_post_shares: { Args: { _post_id: string }; Returns: undefined }
       increment_post_views: { Args: { _post_id: string }; Returns: undefined }
     }
     Enums: {

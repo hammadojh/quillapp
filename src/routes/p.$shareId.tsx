@@ -14,6 +14,7 @@ import {
   getLikeState,
   deleteComment,
   incrementPostView,
+  incrementPostShare,
   listLandingPosts,
 } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -152,6 +153,7 @@ function PublicPostPage() {
           initialLikes={post.likes_count}
           viewsCount={(post as any).views_count ?? 0}
           commentsCount={post.comments_count}
+          initialShares={(post as any).shares_count ?? 0}
         />
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
@@ -162,6 +164,7 @@ function PublicPostPage() {
         postId={post.id}
         initialLikes={post.likes_count}
         commentsCount={post.comments_count}
+        initialShares={(post as any).shares_count ?? 0}
       />
     </div>
   );
@@ -277,6 +280,7 @@ function EngagementBar({
   initialLikes,
   viewsCount,
   commentsCount,
+  initialShares,
 }: {
   shareId: string;
   title: string;
@@ -284,14 +288,17 @@ function EngagementBar({
   initialLikes: number;
   viewsCount: number;
   commentsCount: number;
+  initialShares: number;
 }) {
   const { t } = useT();
   const authed = useAuthed();
   const navigate = useNavigate();
   const getLikeFn = useServerFn(getLikeState);
   const toggleFn = useServerFn(toggleLike);
+  const shareFn = useServerFn(incrementPostShare);
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
+  const [shares, setShares] = useState(initialShares);
 
   useEffect(() => {
     if (!authed) { setLiked(false); return; }
@@ -300,6 +307,8 @@ function EngagementBar({
 
   const url = typeof window !== "undefined" ? `${window.location.origin}/p/${shareId}` : "";
   const onShare = async () => {
+    setShares((c) => c + 1);
+    shareFn({ data: { postId } }).catch(() => {});
     if (typeof navigator !== "undefined" && (navigator as any).share) {
       try {
         await (navigator as any).share({ title, url });
@@ -361,7 +370,7 @@ function EngagementBar({
           aria-label={t("public.share")}
         >
           <Share2 className="h-6 w-6" />
-          <span>{t("public.share")}</span>
+          <span className="tabular-nums">{shares}</span>
         </button>
         <button
           onClick={onLike}
@@ -400,20 +409,24 @@ function FloatingActions({
   postId,
   initialLikes,
   commentsCount,
+  initialShares,
 }: {
   shareId: string;
   title: string;
   postId: string;
   initialLikes: number;
   commentsCount: number;
+  initialShares: number;
 }) {
   const { t } = useT();
   const authed = useAuthed();
   const navigate = useNavigate();
   const getLikeFn = useServerFn(getLikeState);
   const toggleFn = useServerFn(toggleLike);
+  const shareFn = useServerFn(incrementPostShare);
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
+  const [shares, setShares] = useState(initialShares);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -434,6 +447,8 @@ function FloatingActions({
 
   const url = typeof window !== "undefined" ? `${window.location.origin}/p/${shareId}` : "";
   const onShare = async () => {
+    setShares((c) => c + 1);
+    shareFn({ data: { postId } }).catch(() => {});
     if (typeof navigator !== "undefined" && (navigator as any).share) {
       try { await (navigator as any).share({ title, url }); return; } catch { return; }
     }
@@ -495,6 +510,7 @@ function FloatingActions({
           className="flex h-full items-center gap-1.5 rounded-full px-3 text-xs font-medium text-ink/70 transition hover:text-ink"
         >
           <Share2 className="h-4 w-4" />
+          <span className="tabular-nums">{shares}</span>
         </button>
         <span className="h-5 w-px bg-ink/10" aria-hidden />
         <button
