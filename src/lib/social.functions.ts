@@ -77,6 +77,15 @@ export const incrementPostView = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const incrementPostShare = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ postId: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await (supabaseAdmin as any).rpc("increment_post_shares", { _post_id: data.postId });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const getProfileByUsername = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ username: z.string().min(1) }).parse(input))
   .handler(async ({ data }) => {
