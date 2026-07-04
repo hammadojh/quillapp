@@ -155,6 +155,13 @@ function PublicPostPage() {
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
       </main>
+      <FloatingActions
+        shareId={shareId}
+        title={post.title}
+        postId={post.id}
+        initialLikes={post.likes_count}
+        commentsCount={post.comments_count}
+      />
     </div>
   );
 }
