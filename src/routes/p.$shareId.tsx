@@ -93,9 +93,6 @@ function PublicPostPage() {
 
   useEffect(() => {
     if (!post?.id) return;
-    const key = `quill.viewed.${post.id}`;
-    if (sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, "1");
     bumpFn({ data: { postId: post.id } }).catch(() => {});
   }, [post?.id, bumpFn]);
 
