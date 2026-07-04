@@ -14,6 +14,7 @@ import {
   getLikeState,
   deleteComment,
   incrementPostView,
+  listLandingPosts,
 } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useT, LangToggle } from "@/lib/i18n";
@@ -182,17 +183,79 @@ function Topbar() {
 
 function JoinCTA() {
   const { t } = useT();
+  const listFn = useServerFn(listLandingPosts);
+  const { data: posts } = useQuery({
+    queryKey: ["landing-posts-cta"],
+    queryFn: () => listFn(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const withThumbs = (posts ?? []).filter((p: any) => p.thumbnail_url);
+  const pool = withThumbs.length > 0 ? withThumbs : [];
+  // Split into two rows
+  const rowA = pool.filter((_, i) => i % 2 === 0).slice(0, 6);
+  const rowB = pool.filter((_, i) => i % 2 === 1).slice(0, 6);
+  // Fallback padding if too few
+  const pad = (arr: any[]) => (arr.length >= 3 ? arr : [...arr, ...pool].slice(0, Math.max(4, arr.length)));
+  const a = pad(rowA);
+  const b = pad(rowB);
+
   return (
-    <section className="mt-16 rounded-2xl border border-ink/10 bg-white p-6 text-center sm:p-10">
-      <h3 className="font-serif text-2xl text-ink sm:text-3xl">{t("public.cta.title")}</h3>
-      <p className="mx-auto mt-3 max-w-md text-sm text-ink/70 sm:text-base">{t("public.cta.body")}</p>
-      <Link
-        to="/"
-        className="mt-6 inline-block rounded-full bg-brand px-6 py-3 text-sm font-medium text-white hover:opacity-90"
-      >
-        {t("public.cta.button")}
-      </Link>
+    <section className="relative mt-16 overflow-hidden rounded-3xl border border-ink/10 bg-gradient-to-br from-ink via-ink to-[#0f1c2b] text-paper shadow-xl shadow-ink/20">
+      {/* soft glow */}
+      <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[120%] -translate-x-1/2 rounded-full bg-brand/30 blur-3xl" aria-hidden />
+
+      {pool.length > 0 && (
+        <div className="marquee-mask relative space-y-3 pt-10">
+          <MarqueeRow items={a} direction="left" />
+          <MarqueeRow items={b} direction="right" />
+        </div>
+      )}
+
+      <div className="relative px-6 pb-10 pt-8 text-center sm:px-10 sm:pt-10">
+        <p className="mb-3 text-[11px] uppercase tracking-[0.25em] text-paper/50">
+          {t("public.cta.eyebrow")}
+        </p>
+        <h3 className="font-serif text-3xl leading-tight sm:text-4xl">
+          {t("public.cta.title")}
+        </h3>
+        <p className="mx-auto mt-4 max-w-md text-sm text-paper/70 sm:text-base">
+          {t("public.cta.body")}
+        </p>
+        <Link
+          to="/"
+          className="mt-7 inline-block rounded-full bg-brand px-7 py-3 text-sm font-medium text-white shadow-lg shadow-brand/30 transition hover:opacity-90"
+        >
+          {t("public.cta.button")}
+        </Link>
+      </div>
     </section>
+  );
+}
+
+function MarqueeRow({ items, direction }: { items: any[]; direction: "left" | "right" }) {
+  if (items.length === 0) return null;
+  const doubled = [...items, ...items];
+  return (
+    <div className={`marquee-track ${direction === "left" ? "marquee-left" : "marquee-right"}`}>
+      {doubled.map((p, i) => (
+        <div
+          key={`${p.id}-${i}`}
+          className="relative h-24 w-40 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 sm:h-28 sm:w-48"
+        >
+          <img
+            src={thumbUrl(p.id, p.thumbnail_url)}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover opacity-80"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent" />
+          <div className="absolute inset-x-2 bottom-1.5 truncate font-serif text-[11px] text-paper/90">
+            {p.title}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
