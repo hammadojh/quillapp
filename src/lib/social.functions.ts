@@ -96,7 +96,7 @@ export const getProfileByUsername = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!prof) return null;
     const { data: posts } = await sb(publicSupabase())
-      .select("id, share_id, title, content, likes_count, comments_count, views_count, updated_at, user_id, thumbnail_url")
+      .select("id, share_id, title, content, likes_count, comments_count, views_count, shares_count, updated_at, user_id, thumbnail_url")
       .eq("user_id", prof.user_id)
       .eq("is_public", true)
       .eq("in_feed", true)
