@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Heart, MessageCircle, Eye, Share2, ArrowLeft, Loader2, Mic } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPublicPostByShareId,
@@ -92,6 +93,8 @@ function PublicPostPage() {
     queryKey: ["public-post", shareId],
     queryFn: () => getFn({ data: { shareId } }),
   });
+  const [discussStep, setDiscussStep] = useState<null | "choose" | "comment">(null);
+  const openDiscuss = () => setDiscussStep("choose");
 
   useEffect(() => {
     if (!post?.id) return;
@@ -154,6 +157,7 @@ function PublicPostPage() {
           viewsCount={(post as any).views_count ?? 0}
           commentsCount={post.comments_count}
           initialShares={(post as any).shares_count ?? 0}
+          onDiscuss={openDiscuss}
         />
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
@@ -165,7 +169,15 @@ function PublicPostPage() {
         initialLikes={post.likes_count}
         commentsCount={post.comments_count}
         initialShares={(post as any).shares_count ?? 0}
+        onDiscuss={openDiscuss}
       />
+      {discussStep && (
+        <DiscussModal
+          step={discussStep}
+          setStep={setDiscussStep}
+          postId={post.id}
+        />
+      )}
     </div>
   );
 }
@@ -279,6 +291,7 @@ function EngagementBar({
   viewsCount,
   commentsCount,
   initialShares,
+  onDiscuss,
 }: {
   shareId: string;
   title: string;
@@ -287,6 +300,7 @@ function EngagementBar({
   viewsCount: number;
   commentsCount: number;
   initialShares: number;
+  onDiscuss: () => void;
 }) {
   const { t } = useT();
   const authed = useAuthed();
@@ -337,24 +351,10 @@ function EngagementBar({
     }
   };
 
-  const onComment = () => {
-    const el = document.getElementById("comments");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    const ta = document.getElementById("comment-input") as HTMLTextAreaElement | null;
-    setTimeout(() => ta?.focus(), 350);
-  };
-
   return (
     <div id="engagement-bar" className="mt-10">
       <button
-        onClick={() => {
-          if (!authed) {
-            sessionStorage.setItem("quill.afterAuth", window.location.pathname + "#comments");
-            navigate({ to: "/auth" });
-            return;
-          }
-          onComment();
-        }}
+        onClick={onDiscuss}
         className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-paper shadow-lg shadow-brand/25 hover:opacity-90"
       >
         <Mic className="h-4 w-4" />
@@ -408,6 +408,7 @@ function FloatingActions({
   initialLikes,
   commentsCount,
   initialShares,
+  onDiscuss,
 }: {
   shareId: string;
   title: string;
@@ -415,6 +416,7 @@ function FloatingActions({
   initialLikes: number;
   commentsCount: number;
   initialShares: number;
+  onDiscuss: () => void;
 }) {
   const { t } = useT();
   const authed = useAuthed();
@@ -471,13 +473,6 @@ function FloatingActions({
     }
   };
 
-  const onComment = () => {
-    const el = document.getElementById("comments");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    const ta = document.getElementById("comment-input") as HTMLTextAreaElement | null;
-    setTimeout(() => ta?.focus(), 350);
-  };
-
   return (
     <div
       aria-hidden={!visible}
@@ -486,14 +481,7 @@ function FloatingActions({
       }`}
     >
       <button
-        onClick={() => {
-          if (!authed) {
-            sessionStorage.setItem("quill.afterAuth", window.location.pathname + "#comments");
-            navigate({ to: "/auth" });
-            return;
-          }
-          onComment();
-        }}
+        onClick={onDiscuss}
         aria-label={t("public.discuss")}
         className="pointer-events-auto flex h-14 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-paper shadow-xl shadow-brand/40 ring-1 ring-white/10 transition active:scale-95"
       >
@@ -528,13 +516,9 @@ function FloatingActions({
 
 function Comments({ postId }: { postId: string; initialCount: number }) {
   const { t, lang } = useT();
-  const authed = useAuthed();
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const listFn = useServerFn(listComments);
-  const addFn = useServerFn(addComment);
   const delFn = useServerFn(deleteComment);
-  const [text, setText] = useState("");
   const [me, setMe] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setMe(data.session?.user.id ?? null));
@@ -545,54 +529,15 @@ function Comments({ postId }: { postId: string; initialCount: number }) {
     queryFn: () => listFn({ data: { postId } }),
   });
 
-  const add = useMutation({
-    mutationFn: (content: string) => addFn({ data: { postId, content } }),
-    onSuccess: () => { setText(""); qc.invalidateQueries({ queryKey: ["comments", postId] }); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
   const remove = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", postId] }),
   });
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = text.trim();
-    if (!clean) return;
-    if (!authed) {
-      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
-      sessionStorage.setItem("quill.pendingComment", JSON.stringify({ postId, content: clean }));
-      navigate({ to: "/auth" });
-      return;
-    }
-    add.mutate(clean);
-  };
-
   return (
     <section id="comments" className="mt-12 scroll-mt-6">
       <h2 className="font-serif text-xl">{t("public.comments.title")}</h2>
-      <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-2 rounded-xl border border-ink/15 bg-white p-3 focus-within:border-brand/50">
-        <textarea
-          id="comment-input"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={authed ? t("public.comments.placeholder") : t("public.signin.comment")}
-          rows={2}
-          className="w-full resize-none bg-transparent px-2 py-1 text-sm focus:outline-none"
-        />
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={!text.trim() || add.isPending}
-            className="rounded-full bg-ink px-4 py-2 text-xs font-medium text-paper hover:opacity-90 disabled:opacity-50"
-          >
-            {t("public.comments.post")}
-          </button>
-        </div>
-      </form>
-
-      <ul className="mt-6 space-y-4">
+      <ul className="mt-4 space-y-4">
         {(comments ?? []).length === 0 && (
           <li className="text-sm text-ink/50">{t("public.comments.empty")}</li>
         )}
@@ -619,5 +564,184 @@ function Comments({ postId }: { postId: string; initialCount: number }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+function DiscussModal({
+  step,
+  setStep,
+  postId,
+}: {
+  step: "choose" | "comment";
+  setStep: (s: null | "choose" | "comment") => void;
+  postId: string;
+}) {
+  const { t } = useT();
+  const authed = useAuthed();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const addFn = useServerFn(addComment);
+  const [text, setText] = useState("");
+  const [listening, setListening] = useState(false);
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const recRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (step === "comment") {
+      // Autofocus so the mobile keyboard opens
+      setTimeout(() => taRef.current?.focus(), 50);
+    }
+  }, [step]);
+
+  const close = () => {
+    try { recRef.current?.stop?.(); } catch { /* noop */ }
+    setStep(null);
+    setText("");
+    setListening(false);
+  };
+
+  const toNewArticle = () => {
+    close();
+    // Auth guard handled by /_authenticated/dashboard route.
+    sessionStorage.setItem("quill.afterAuth", "/dashboard");
+    navigate({ to: authed ? "/dashboard" : "/auth" });
+  };
+
+  const add = useMutation({
+    mutationFn: (content: string) => addFn({ data: { postId, content } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comments", postId] });
+      toast.success(t("public.comments.post"));
+      close();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const submitComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = text.trim();
+    if (!clean) return;
+    if (!authed) {
+      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
+      sessionStorage.setItem("quill.pendingComment", JSON.stringify({ postId, content: clean }));
+      navigate({ to: "/auth" });
+      return;
+    }
+    add.mutate(clean);
+  };
+
+  const toggleVoice = () => {
+    const SR: any =
+      (typeof window !== "undefined" && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) || null;
+    if (!SR) {
+      toast.error(t("public.discuss.voiceUnsupported"));
+      return;
+    }
+    if (listening) {
+      try { recRef.current?.stop?.(); } catch { /* noop */ }
+      setListening(false);
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = document.documentElement.lang === "ar" ? "ar-SA" : "en-US";
+    rec.onresult = (ev: any) => {
+      let out = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        out += ev.results[i][0].transcript;
+      }
+      setText((prev) => (prev ? prev.trimEnd() + " " : "") + out.trim());
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    try { rec.start(); setListening(true); } catch { setListening(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-ink/40" onClick={close} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative w-full max-w-md rounded-t-3xl bg-paper p-5 shadow-2xl sm:rounded-3xl"
+      >
+        <button
+          onClick={close}
+          aria-label={t("public.discuss.cancel")}
+          className="absolute end-3 top-3 rounded-full p-1.5 text-ink/50 hover:bg-ink/5 hover:text-ink"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        {step === "choose" && (
+          <div className="pt-2">
+            <h3 className="text-center font-serif text-lg text-ink">
+              {t("public.discuss.title")}
+            </h3>
+            <div className="mt-5 flex flex-col gap-3">
+              <button
+                onClick={() => setStep("comment")}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-brand px-5 py-4 text-sm font-semibold text-paper shadow-lg shadow-brand/25 hover:opacity-90"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t("public.discuss.comment")}
+              </button>
+              <button
+                onClick={toNewArticle}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-ink/15 bg-white px-5 py-4 text-sm font-semibold text-ink hover:bg-ink/[0.03]"
+              >
+                <Pencil className="h-4 w-4" />
+                {t("public.discuss.new")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "comment" && (
+          <form onSubmit={submitComment} className="pt-2">
+            <h3 className="font-serif text-lg text-ink">
+              {t("public.discuss.commentTitle")}
+            </h3>
+            <textarea
+              ref={taRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={t("public.discuss.commentPlaceholder")}
+              rows={4}
+              className="mt-3 w-full resize-none rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink focus:border-brand/50 focus:outline-none"
+            />
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={toggleVoice}
+                aria-label="Voice input"
+                aria-pressed={listening}
+                className={`flex h-11 w-11 items-center justify-center rounded-full border transition ${
+                  listening
+                    ? "border-brand bg-brand text-paper animate-pulse"
+                    : "border-ink/15 bg-white text-ink/70 hover:text-ink"
+                }`}
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+              <div className="flex items-center gap-2">
+                {listening && (
+                  <span className="text-xs text-ink/50">{t("public.discuss.listening")}</span>
+                )}
+                <button
+                  type="submit"
+                  disabled={!text.trim() || add.isPending}
+                  className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-paper shadow-md shadow-brand/25 hover:opacity-90 disabled:opacity-50"
+                >
+                  {add.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("public.discuss.send")}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }
