@@ -408,6 +408,7 @@ function FloatingActions({
   initialLikes,
   commentsCount,
   initialShares,
+  onDiscuss,
 }: {
   shareId: string;
   title: string;
@@ -415,6 +416,7 @@ function FloatingActions({
   initialLikes: number;
   commentsCount: number;
   initialShares: number;
+  onDiscuss: () => void;
 }) {
   const { t } = useT();
   const authed = useAuthed();
@@ -471,13 +473,6 @@ function FloatingActions({
     }
   };
 
-  const onComment = () => {
-    const el = document.getElementById("comments");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    const ta = document.getElementById("comment-input") as HTMLTextAreaElement | null;
-    setTimeout(() => ta?.focus(), 350);
-  };
-
   return (
     <div
       aria-hidden={!visible}
@@ -486,14 +481,7 @@ function FloatingActions({
       }`}
     >
       <button
-        onClick={() => {
-          if (!authed) {
-            sessionStorage.setItem("quill.afterAuth", window.location.pathname + "#comments");
-            navigate({ to: "/auth" });
-            return;
-          }
-          onComment();
-        }}
+        onClick={onDiscuss}
         aria-label={t("public.discuss")}
         className="pointer-events-auto flex h-14 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-paper shadow-xl shadow-brand/40 ring-1 ring-white/10 transition active:scale-95"
       >
