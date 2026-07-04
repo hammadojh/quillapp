@@ -336,14 +336,29 @@ function EngagementBar({
   return (
     <div id="engagement-bar" className="mt-10">
       <button
-        onClick={onShare}
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:opacity-90"
+        onClick={() => {
+          if (!authed) {
+            sessionStorage.setItem("quill.afterAuth", window.location.pathname + "#comments");
+            navigate({ to: "/auth" });
+            return;
+          }
+          onComment();
+        }}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-paper shadow-lg shadow-brand/25 hover:opacity-90"
       >
-        <Share2 className="h-4 w-4" />
-        {t("public.share")}
+        <Mic className="h-4 w-4" />
+        {t("public.discuss")}
       </button>
 
       <div className="mt-5 flex items-center justify-around">
+        <button
+          onClick={onShare}
+          className="flex flex-col items-center gap-1 text-xs text-ink/60 transition hover:text-ink"
+          aria-label={t("public.share")}
+        >
+          <Share2 className="h-6 w-6" />
+          <span>{t("public.share")}</span>
+        </button>
         <button
           onClick={onLike}
           className={`flex flex-col items-center gap-1 text-xs transition ${liked ? "text-brand" : "text-ink/60 hover:text-ink"}`}
@@ -352,14 +367,10 @@ function EngagementBar({
           <Heart className={`h-6 w-6 ${liked ? "fill-current" : ""}`} />
           <span className="tabular-nums">{likes}</span>
         </button>
-        <button
-          onClick={onComment}
-          className="flex flex-col items-center gap-1 text-xs text-ink/60 transition hover:text-ink"
-          aria-label="Comment"
-        >
+        <div className="flex flex-col items-center gap-1 text-xs text-ink/60">
           <MessageCircle className="h-6 w-6" />
           <span className="tabular-nums">{commentsCount}</span>
-        </button>
+        </div>
         <div className="flex flex-col items-center gap-1 text-xs text-ink/60">
           <Eye className="h-6 w-6" />
           <span className="tabular-nums">{viewsCount}</span>
