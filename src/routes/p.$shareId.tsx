@@ -488,11 +488,11 @@ function FloatingActions({
         <span>{t("public.discuss")}</span>
       </button>
 
-      <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-white/55 p-1.5 shadow-md shadow-ink/10 ring-1 ring-ink/10 backdrop-blur-xl backdrop-saturate-150">
+      <div className="pointer-events-auto flex h-14 items-center gap-1 rounded-full bg-white/55 px-2 shadow-md shadow-ink/10 ring-1 ring-ink/10 backdrop-blur-xl backdrop-saturate-150">
         <button
           onClick={onShare}
           aria-label={t("public.share")}
-          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-ink/70 transition hover:text-ink"
+          className="flex h-full items-center gap-1.5 rounded-full px-3 text-xs font-medium text-ink/70 transition hover:text-ink"
         >
           <Share2 className="h-4 w-4" />
         </button>
@@ -500,7 +500,7 @@ function FloatingActions({
         <button
           onClick={onLike}
           aria-label="Like"
-          className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition ${
+          className={`flex h-full items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
             liked ? "text-brand" : "text-ink/70 hover:text-ink"
           }`}
         >
