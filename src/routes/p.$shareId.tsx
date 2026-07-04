@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
@@ -155,6 +155,13 @@ function PublicPostPage() {
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
       </main>
+      <FloatingActions
+        shareId={shareId}
+        title={post.title}
+        postId={post.id}
+        initialLikes={post.likes_count}
+        commentsCount={post.comments_count}
+      />
     </div>
   );
 }
@@ -261,7 +268,7 @@ function EngagementBar({
   };
 
   return (
-    <div className="mt-10">
+    <div id="engagement-bar" className="mt-10">
       <button
         onClick={onShare}
         className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:opacity-90"
@@ -304,6 +311,117 @@ function useAuthed() {
     return () => sub.subscription.unsubscribe();
   }, []);
   return authed;
+}
+
+function FloatingActions({
+  shareId,
+  title,
+  postId,
+  initialLikes,
+  commentsCount,
+}: {
+  shareId: string;
+  title: string;
+  postId: string;
+  initialLikes: number;
+  commentsCount: number;
+}) {
+  const { t } = useT();
+  const authed = useAuthed();
+  const navigate = useNavigate();
+  const getLikeFn = useServerFn(getLikeState);
+  const toggleFn = useServerFn(toggleLike);
+  const [likes, setLikes] = useState(initialLikes);
+  const [liked, setLiked] = useState(false);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (!authed) { setLiked(false); return; }
+    getLikeFn({ data: { postId } }).then((r) => setLiked(r.liked)).catch(() => {});
+  }, [authed, postId, getLikeFn]);
+
+  useEffect(() => {
+    const target = document.getElementById("engagement-bar");
+    if (!target) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(!entry.isIntersecting),
+      { rootMargin: "0px 0px -80px 0px", threshold: 0 }
+    );
+    io.observe(target);
+    return () => io.disconnect();
+  }, []);
+
+  const url = typeof window !== "undefined" ? `${window.location.origin}/p/${shareId}` : "";
+  const onShare = async () => {
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      try { await (navigator as any).share({ title, url }); return; } catch { return; }
+    }
+    try { await navigator.clipboard.writeText(url); toast.success(t("post.share.copied")); } catch {}
+  };
+
+  const onLike = async () => {
+    if (!authed) {
+      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
+      navigate({ to: "/auth" });
+      return;
+    }
+    const prev = liked;
+    setLiked(!prev);
+    setLikes((c) => c + (prev ? -1 : 1));
+    try {
+      const r = await toggleFn({ data: { postId } });
+      setLiked(r.liked);
+    } catch {
+      setLiked(prev);
+      setLikes((c) => c + (prev ? 1 : -1));
+    }
+  };
+
+  const onComment = () => {
+    const el = document.getElementById("comments");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const ta = document.getElementById("comment-input") as HTMLTextAreaElement | null;
+    setTimeout(() => ta?.focus(), 350);
+  };
+
+  return (
+    <div
+      aria-hidden={!visible}
+      className={`pointer-events-none fixed inset-x-0 bottom-4 z-40 flex items-end justify-between px-4 transition-all duration-300 sm:hidden ${
+        visible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+      }`}
+    >
+      <button
+        onClick={onShare}
+        aria-label={t("public.share")}
+        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-ink/85 text-paper shadow-lg shadow-ink/20 ring-1 ring-white/20 backdrop-blur-xl backdrop-saturate-150 transition active:scale-95"
+      >
+        <Share2 className="h-5 w-5" />
+      </button>
+
+      <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-white/55 p-1.5 shadow-md shadow-ink/10 ring-1 ring-ink/10 backdrop-blur-xl backdrop-saturate-150">
+        <button
+          onClick={onLike}
+          aria-label="Like"
+          className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition ${
+            liked ? "text-brand" : "text-ink/70 hover:text-ink"
+          }`}
+        >
+          <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
+          <span className="tabular-nums">{likes}</span>
+        </button>
+        <span className="h-5 w-px bg-ink/10" aria-hidden />
+        <button
+          onClick={onComment}
+          aria-label="Comment"
+          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-ink/70 transition hover:text-ink"
+        >
+          <MessageCircle className="h-4 w-4" />
+          <span className="tabular-nums">{commentsCount}</span>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function Comments({ postId }: { postId: string; initialCount: number }) {
