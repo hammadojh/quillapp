@@ -291,6 +291,7 @@ function EngagementBar({
   viewsCount,
   commentsCount,
   initialShares,
+  onDiscuss,
 }: {
   shareId: string;
   title: string;
@@ -299,6 +300,7 @@ function EngagementBar({
   viewsCount: number;
   commentsCount: number;
   initialShares: number;
+  onDiscuss: () => void;
 }) {
   const { t } = useT();
   const authed = useAuthed();
@@ -349,24 +351,10 @@ function EngagementBar({
     }
   };
 
-  const onComment = () => {
-    const el = document.getElementById("comments");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    const ta = document.getElementById("comment-input") as HTMLTextAreaElement | null;
-    setTimeout(() => ta?.focus(), 350);
-  };
-
   return (
     <div id="engagement-bar" className="mt-10">
       <button
-        onClick={() => {
-          if (!authed) {
-            sessionStorage.setItem("quill.afterAuth", window.location.pathname + "#comments");
-            navigate({ to: "/auth" });
-            return;
-          }
-          onComment();
-        }}
+        onClick={onDiscuss}
         className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-paper shadow-lg shadow-brand/25 hover:opacity-90"
       >
         <Mic className="h-4 w-4" />
