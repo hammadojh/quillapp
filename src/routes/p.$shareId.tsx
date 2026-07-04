@@ -235,10 +235,13 @@ function JoinCTA() {
 
 function MarqueeRow({ items, direction }: { items: any[]; direction: "left" | "right" }) {
   if (items.length === 0) return null;
-  const doubled = [...items, ...items];
+  // Repeat enough times so the row always covers the viewport at any animation
+  // position (we ping-pong between 0 and -50%, so we need ≥ 2× viewport width).
+  const repeats = Math.max(4, Math.ceil(16 / items.length));
+  const filled = Array.from({ length: repeats }, () => items).flat();
   return (
     <div className={`marquee-track ${direction === "left" ? "marquee-left" : "marquee-right"}`}>
-      {doubled.map((p, i) => (
+      {filled.map((p, i) => (
         <div
           key={`${p.id}-${i}`}
           className="relative h-24 w-40 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 sm:h-28 sm:w-48"

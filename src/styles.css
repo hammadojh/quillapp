@@ -194,12 +194,14 @@ html, body { max-width: 100%; overflow-x: hidden; }
   display: flex;
   width: max-content;
   gap: 0.75rem;
-  animation-duration: 60s;
-  animation-timing-function: linear;
+  animation-duration: 40s;
+  animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
+  animation-direction: alternate;
+  will-change: transform;
 }
 .marquee-left { animation-name: marquee-left; }
-.marquee-right { animation-name: marquee-right; }
+.marquee-right { animation-name: marquee-right; animation-direction: alternate-reverse; }
 .marquee-mask {
   mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
   -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
