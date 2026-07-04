@@ -791,7 +791,27 @@ function GeneratedView({
           </div>
         )}
         {isPublic && (
-          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-ink/10 bg-paper p-3 sm:flex-row sm:items-center">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/10 bg-paper p-3">
+            <div className="flex items-center gap-3">
+              <Rss className={`h-5 w-5 ${inFeed ? "text-brand" : "text-ink/40"}`} />
+              <div>
+                <div className="text-sm font-medium">{t("post.feed.title")}</div>
+                <div className="text-xs text-ink/55">
+                  {inFeed ? t("post.feed.onHint") : t("post.feed.offHint")}
+                </div>
+              </div>
+            </div>
+            <Switch
+              dir="ltr"
+              className="h-6 w-11"
+              thumbClassName="h-5 w-5 data-[state=checked]:translate-x-5"
+              checked={inFeed}
+              onCheckedChange={toggleFeed}
+              aria-label={t("post.feed.title")}
+            />
+          </div>
+        )}
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-ink/10 bg-paper p-3 sm:flex-row sm:items-center">
             <div className="h-20 w-36 shrink-0 overflow-hidden rounded-md border border-ink/10 bg-white">
               {thumbStamp ? (
                 <img
@@ -818,7 +838,6 @@ function GeneratedView({
               {thumbBusy ? t("post.thumb.working") : t("post.thumb.regen")}
             </button>
           </div>
-        )}
       </div>
 
       {editing ? (
