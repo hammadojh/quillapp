@@ -14,6 +14,7 @@ import {
   getLikeState,
   deleteComment,
   incrementPostView,
+  incrementPostShare,
   listLandingPosts,
 } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
