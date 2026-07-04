@@ -280,6 +280,7 @@ function EngagementBar({
   initialLikes,
   viewsCount,
   commentsCount,
+  initialShares,
 }: {
   shareId: string;
   title: string;
@@ -287,6 +288,7 @@ function EngagementBar({
   initialLikes: number;
   viewsCount: number;
   commentsCount: number;
+  initialShares: number;
 }) {
   const { t } = useT();
   const authed = useAuthed();
