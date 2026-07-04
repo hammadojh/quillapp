@@ -255,6 +255,7 @@ const dicts: Record<Lang, Dict> = {
     "public.comments.post": "Post",
     "public.likes": "{n} likes",
     "public.comments.count": "{n} comments",
+   "public.share": "Share",
     "public.by": "by",
     "public.disclaimer": "Original ideas by the author. Editing and artistic writing assisted by Quill.",
     "public.notfound": "This post isn't available or is no longer public.",
