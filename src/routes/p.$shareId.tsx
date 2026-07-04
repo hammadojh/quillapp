@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Heart, MessageCircle, Eye, Share2, ArrowLeft, Loader2, Mic } from "lucide-react";
+import { X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPublicPostByShareId,
@@ -92,6 +93,8 @@ function PublicPostPage() {
     queryKey: ["public-post", shareId],
     queryFn: () => getFn({ data: { shareId } }),
   });
+  const [discussStep, setDiscussStep] = useState<null | "choose" | "comment">(null);
+  const openDiscuss = () => setDiscussStep("choose");
 
   useEffect(() => {
     if (!post?.id) return;
@@ -154,6 +157,7 @@ function PublicPostPage() {
           viewsCount={(post as any).views_count ?? 0}
           commentsCount={post.comments_count}
           initialShares={(post as any).shares_count ?? 0}
+          onDiscuss={openDiscuss}
         />
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
@@ -165,7 +169,15 @@ function PublicPostPage() {
         initialLikes={post.likes_count}
         commentsCount={post.comments_count}
         initialShares={(post as any).shares_count ?? 0}
+        onDiscuss={openDiscuss}
       />
+      {discussStep && (
+        <DiscussModal
+          step={discussStep}
+          setStep={setDiscussStep}
+          postId={post.id}
+        />
+      )}
     </div>
   );
 }
