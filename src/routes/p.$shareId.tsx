@@ -510,6 +510,7 @@ function FloatingActions({
           className="flex h-full items-center gap-1.5 rounded-full px-3 text-xs font-medium text-ink/70 transition hover:text-ink"
         >
           <Share2 className="h-4 w-4" />
+          <span className="tabular-nums">{shares}</span>
         </button>
         <span className="h-5 w-px bg-ink/10" aria-hidden />
         <button
