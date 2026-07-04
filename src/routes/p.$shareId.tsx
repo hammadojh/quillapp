@@ -240,33 +240,27 @@ function JoinCTA() {
   );
 }
 
-function MarqueeRow({ items, direction }: { items: any[]; direction: "left" | "right" }) {
+function StaticRow({ items }: { items: any[] }) {
   if (items.length === 0) return null;
-  // Build one fully-populated strip, then render it twice. The animation moves
-  // exactly one strip width, so the second strip is already in place when it repeats.
   const repeats = Math.max(1, Math.ceil(10 / items.length));
   const filled = Array.from({ length: repeats }, () => items).flat();
   return (
-    <div className={`marquee-track ${direction === "left" ? "marquee-left" : "marquee-right"}`}>
-      {[0, 1].map((group) => (
-        <div className="marquee-group" key={group}>
-          {filled.map((p, i) => (
-            <div
-              key={`${group}-${p.id}-${i}`}
-              className="relative h-24 w-40 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 sm:h-28 sm:w-48"
-            >
-              <img
-                src={thumbUrl(p.id, p.thumbnail_url)}
-                alt=""
-                loading="eager"
-                className="h-full w-full object-cover opacity-80"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent" />
-              <div className="absolute inset-x-2 bottom-1.5 truncate font-serif text-[11px] text-paper/90">
-                {p.title}
-              </div>
-            </div>
-          ))}
+    <div className="flex gap-3">
+      {filled.map((p, i) => (
+        <div
+          key={`${p.id}-${i}`}
+          className="relative h-24 w-40 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/10 sm:h-28 sm:w-48"
+        >
+          <img
+            src={thumbUrl(p.id, p.thumbnail_url)}
+            alt=""
+            loading="eager"
+            className="h-full w-full object-cover opacity-80"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent" />
+          <div className="absolute inset-x-2 bottom-1.5 truncate font-serif text-[11px] text-paper/90">
+            {p.title}
+          </div>
         </div>
       ))}
     </div>
