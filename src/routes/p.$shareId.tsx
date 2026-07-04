@@ -682,18 +682,18 @@ function DiscussModal({
             </h3>
             <div className="mt-5 flex flex-col gap-3">
               <button
-                onClick={() => setStep("comment")}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-brand px-5 py-4 text-sm font-semibold text-paper shadow-lg shadow-brand/25 hover:opacity-90"
-              >
-                <MessageCircle className="h-4 w-4" />
-                {t("public.discuss.comment")}
-              </button>
-              <button
                 onClick={toNewArticle}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-ink/15 bg-white px-5 py-4 text-sm font-semibold text-ink hover:bg-ink/[0.03]"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-brand px-5 py-4 text-sm font-semibold text-paper shadow-lg shadow-brand/25 hover:opacity-90"
               >
                 <Pencil className="h-4 w-4" />
                 {t("public.discuss.new")}
+              </button>
+              <button
+                onClick={() => setStep("comment")}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-ink/15 bg-white px-5 py-4 text-sm font-semibold text-ink hover:bg-ink/[0.03]"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t("public.discuss.comment")}
               </button>
             </div>
           </div>
