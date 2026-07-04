@@ -209,9 +209,13 @@ function JoinCTA() {
       <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[120%] -translate-x-1/2 rounded-full bg-brand/30 blur-3xl" aria-hidden />
 
       {pool.length > 0 && (
-        <div className="marquee-mask relative space-y-3 pt-10">
-          <MarqueeRow items={a} direction="left" />
-          <MarqueeRow items={b} direction="right" />
+        <div className="relative pt-10">
+          <div className="flex gap-3 overflow-hidden px-4">
+            <StaticRow items={a} />
+          </div>
+          <div className="mt-3 flex gap-3 overflow-hidden px-12">
+            <StaticRow items={b} />
+          </div>
         </div>
       )}
 
