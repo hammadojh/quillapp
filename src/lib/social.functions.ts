@@ -11,6 +11,7 @@ type PostSummary = {
   likes_count: number;
   comments_count: number;
   views_count: number;
+  shares_count: number;
   updated_at: string;
   user_id: string;
   author?: { username: string; display_name: string | null } | null;
