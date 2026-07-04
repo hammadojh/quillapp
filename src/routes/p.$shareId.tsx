@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Heart, MessageCircle, Eye, Share2, ArrowLeft, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Eye, Share2, ArrowLeft, Loader2, Mic } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPublicPostByShareId,
@@ -336,14 +336,29 @@ function EngagementBar({
   return (
     <div id="engagement-bar" className="mt-10">
       <button
-        onClick={onShare}
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:opacity-90"
+        onClick={() => {
+          if (!authed) {
+            sessionStorage.setItem("quill.afterAuth", window.location.pathname + "#comments");
+            navigate({ to: "/auth" });
+            return;
+          }
+          onComment();
+        }}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-paper shadow-lg shadow-brand/25 hover:opacity-90"
       >
-        <Share2 className="h-4 w-4" />
-        {t("public.share")}
+        <Mic className="h-4 w-4" />
+        {t("public.discuss")}
       </button>
 
       <div className="mt-5 flex items-center justify-around">
+        <button
+          onClick={onShare}
+          className="flex flex-col items-center gap-1 text-xs text-ink/60 transition hover:text-ink"
+          aria-label={t("public.share")}
+        >
+          <Share2 className="h-6 w-6" />
+          <span>{t("public.share")}</span>
+        </button>
         <button
           onClick={onLike}
           className={`flex flex-col items-center gap-1 text-xs transition ${liked ? "text-brand" : "text-ink/60 hover:text-ink"}`}
@@ -352,14 +367,10 @@ function EngagementBar({
           <Heart className={`h-6 w-6 ${liked ? "fill-current" : ""}`} />
           <span className="tabular-nums">{likes}</span>
         </button>
-        <button
-          onClick={onComment}
-          className="flex flex-col items-center gap-1 text-xs text-ink/60 transition hover:text-ink"
-          aria-label="Comment"
-        >
+        <div className="flex flex-col items-center gap-1 text-xs text-ink/60">
           <MessageCircle className="h-6 w-6" />
           <span className="tabular-nums">{commentsCount}</span>
-        </button>
+        </div>
         <div className="flex flex-col items-center gap-1 text-xs text-ink/60">
           <Eye className="h-6 w-6" />
           <span className="tabular-nums">{viewsCount}</span>
@@ -458,14 +469,30 @@ function FloatingActions({
       }`}
     >
       <button
-        onClick={onShare}
-        aria-label={t("public.share")}
-        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-ink/85 text-paper shadow-lg shadow-ink/20 ring-1 ring-white/20 backdrop-blur-xl backdrop-saturate-150 transition active:scale-95"
+        onClick={() => {
+          if (!authed) {
+            sessionStorage.setItem("quill.afterAuth", window.location.pathname + "#comments");
+            navigate({ to: "/auth" });
+            return;
+          }
+          onComment();
+        }}
+        aria-label={t("public.discuss")}
+        className="pointer-events-auto flex h-14 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-paper shadow-xl shadow-brand/40 ring-1 ring-white/10 transition active:scale-95"
       >
-        <Share2 className="h-5 w-5" />
+        <Mic className="h-5 w-5" />
+        <span>{t("public.discuss")}</span>
       </button>
 
       <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-white/55 p-1.5 shadow-md shadow-ink/10 ring-1 ring-ink/10 backdrop-blur-xl backdrop-saturate-150">
+        <button
+          onClick={onShare}
+          aria-label={t("public.share")}
+          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-ink/70 transition hover:text-ink"
+        >
+          <Share2 className="h-4 w-4" />
+        </button>
+        <span className="h-5 w-px bg-ink/10" aria-hidden />
         <button
           onClick={onLike}
           aria-label="Like"
@@ -475,15 +502,6 @@ function FloatingActions({
         >
           <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
           <span className="tabular-nums">{likes}</span>
-        </button>
-        <span className="h-5 w-px bg-ink/10" aria-hidden />
-        <button
-          onClick={onComment}
-          aria-label="Comment"
-          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-ink/70 transition hover:text-ink"
-        >
-          <MessageCircle className="h-4 w-4" />
-          <span className="tabular-nums">{commentsCount}</span>
         </button>
       </div>
     </div>
