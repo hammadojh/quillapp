@@ -81,6 +81,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          in_feed: boolean
           interview_messages: Json
           is_public: boolean
           likes_count: number
@@ -97,6 +98,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          in_feed?: boolean
           interview_messages?: Json
           is_public?: boolean
           likes_count?: number
@@ -113,6 +115,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          in_feed?: boolean
           interview_messages?: Json
           is_public?: boolean
           likes_count?: number
