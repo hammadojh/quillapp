@@ -516,13 +516,9 @@ function FloatingActions({
 
 function Comments({ postId }: { postId: string; initialCount: number }) {
   const { t, lang } = useT();
-  const authed = useAuthed();
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const listFn = useServerFn(listComments);
-  const addFn = useServerFn(addComment);
   const delFn = useServerFn(deleteComment);
-  const [text, setText] = useState("");
   const [me, setMe] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setMe(data.session?.user.id ?? null));
@@ -533,54 +529,15 @@ function Comments({ postId }: { postId: string; initialCount: number }) {
     queryFn: () => listFn({ data: { postId } }),
   });
 
-  const add = useMutation({
-    mutationFn: (content: string) => addFn({ data: { postId, content } }),
-    onSuccess: () => { setText(""); qc.invalidateQueries({ queryKey: ["comments", postId] }); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
   const remove = useMutation({
     mutationFn: (id: string) => delFn({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comments", postId] }),
   });
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = text.trim();
-    if (!clean) return;
-    if (!authed) {
-      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
-      sessionStorage.setItem("quill.pendingComment", JSON.stringify({ postId, content: clean }));
-      navigate({ to: "/auth" });
-      return;
-    }
-    add.mutate(clean);
-  };
-
   return (
     <section id="comments" className="mt-12 scroll-mt-6">
       <h2 className="font-serif text-xl">{t("public.comments.title")}</h2>
-      <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-2 rounded-xl border border-ink/15 bg-white p-3 focus-within:border-brand/50">
-        <textarea
-          id="comment-input"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={authed ? t("public.comments.placeholder") : t("public.signin.comment")}
-          rows={2}
-          className="w-full resize-none bg-transparent px-2 py-1 text-sm focus:outline-none"
-        />
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={!text.trim() || add.isPending}
-            className="rounded-full bg-ink px-4 py-2 text-xs font-medium text-paper hover:opacity-90 disabled:opacity-50"
-          >
-            {t("public.comments.post")}
-          </button>
-        </div>
-      </form>
-
-      <ul className="mt-6 space-y-4">
+      <ul className="mt-4 space-y-4">
         {(comments ?? []).length === 0 && (
           <li className="text-sm text-ink/50">{t("public.comments.empty")}</li>
         )}
