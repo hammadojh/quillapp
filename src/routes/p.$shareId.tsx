@@ -193,28 +193,105 @@ function TopbarOld() {
   return null;
 }
 
-function ShareRow({ shareId, title }: { shareId: string; title: string }) {
+function EngagementBar({
+  shareId,
+  title,
+  postId,
+  initialLikes,
+  viewsCount,
+  commentsCount,
+}: {
+  shareId: string;
+  title: string;
+  postId: string;
+  initialLikes: number;
+  viewsCount: number;
+  commentsCount: number;
+}) {
   const { t } = useT();
+  const authed = useAuthed();
+  const navigate = useNavigate();
+  const getLikeFn = useServerFn(getLikeState);
+  const toggleFn = useServerFn(toggleLike);
+  const [likes, setLikes] = useState(initialLikes);
+  const [liked, setLiked] = useState(false);
+
+  useEffect(() => {
+    if (!authed) { setLiked(false); return; }
+    getLikeFn({ data: { postId } }).then((r) => setLiked(r.liked)).catch(() => {});
+  }, [authed, postId, getLikeFn]);
+
   const url = typeof window !== "undefined" ? `${window.location.origin}/p/${shareId}` : "";
-  const copy = async () => {
+  const onShare = async () => {
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      try {
+        await (navigator as any).share({ title, url });
+        return;
+      } catch { /* user cancelled */ return; }
+    }
     try {
       await navigator.clipboard.writeText(url);
       toast.success(t("post.share.copied"));
     } catch { /* noop */ }
   };
-  const x = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
-  const li = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+
+  const onLike = async () => {
+    if (!authed) {
+      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
+      navigate({ to: "/auth" });
+      return;
+    }
+    const prev = liked;
+    setLiked(!prev);
+    setLikes((c) => c + (prev ? -1 : 1));
+    try {
+      const r = await toggleFn({ data: { postId } });
+      setLiked(r.liked);
+    } catch {
+      setLiked(prev);
+      setLikes((c) => c + (prev ? 1 : -1));
+    }
+  };
+
+  const onComment = () => {
+    const el = document.getElementById("comments");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const ta = document.getElementById("comment-input") as HTMLTextAreaElement | null;
+    setTimeout(() => ta?.focus(), 350);
+  };
+
   return (
-    <div className="mt-10 flex flex-wrap items-center gap-2 rounded-xl border border-ink/10 bg-white p-3">
-      <button onClick={copy} className="rounded-full bg-ink px-4 py-2 text-xs font-medium text-paper hover:opacity-90">
-        {t("post.share.copy")}
+    <div className="mt-10">
+      <button
+        onClick={onShare}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:opacity-90"
+      >
+        <Share2 className="h-4 w-4" />
+        {t("public.share")}
       </button>
-      <a href={x} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-full border border-ink/15 px-3 py-2 text-xs text-ink/80 hover:bg-ink/5">
-        <Twitter className="h-4 w-4" /> X
-      </a>
-      <a href={li} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-full border border-ink/15 px-3 py-2 text-xs text-ink/80 hover:bg-ink/5">
-        <Linkedin className="h-4 w-4" /> LinkedIn
-      </a>
+
+      <div className="mt-5 flex items-center justify-around">
+        <button
+          onClick={onLike}
+          className={`flex flex-col items-center gap-1 text-xs transition ${liked ? "text-brand" : "text-ink/60 hover:text-ink"}`}
+          aria-label="Like"
+        >
+          <Heart className={`h-6 w-6 ${liked ? "fill-current" : ""}`} />
+          <span className="tabular-nums">{likes}</span>
+        </button>
+        <button
+          onClick={onComment}
+          className="flex flex-col items-center gap-1 text-xs text-ink/60 transition hover:text-ink"
+          aria-label="Comment"
+        >
+          <MessageCircle className="h-6 w-6" />
+          <span className="tabular-nums">{commentsCount}</span>
+        </button>
+        <div className="flex flex-col items-center gap-1 text-xs text-ink/60">
+          <Eye className="h-6 w-6" />
+          <span className="tabular-nums">{viewsCount}</span>
+        </div>
+      </div>
     </div>
   );
 }
