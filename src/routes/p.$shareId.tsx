@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Heart, MessageCircle, Eye, Twitter, Linkedin, ArrowLeft, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Eye, Share2, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPublicPostByShareId,
@@ -144,8 +144,14 @@ function PublicPostPage() {
         <p className="mt-10 text-center text-xs text-ink/40 italic">
           {t("public.disclaimer")}
         </p>
-        <ShareRow shareId={shareId} title={post.title} />
-        <LikeRow postId={post.id} initialCount={post.likes_count} viewsCount={(post as any).views_count ?? 0} />
+        <EngagementBar
+          shareId={shareId}
+          title={post.title}
+          postId={post.id}
+          initialLikes={post.likes_count}
+          viewsCount={(post as any).views_count ?? 0}
+          commentsCount={post.comments_count}
+        />
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
       </main>
@@ -187,28 +193,105 @@ function TopbarOld() {
   return null;
 }
 
-function ShareRow({ shareId, title }: { shareId: string; title: string }) {
+function EngagementBar({
+  shareId,
+  title,
+  postId,
+  initialLikes,
+  viewsCount,
+  commentsCount,
+}: {
+  shareId: string;
+  title: string;
+  postId: string;
+  initialLikes: number;
+  viewsCount: number;
+  commentsCount: number;
+}) {
   const { t } = useT();
+  const authed = useAuthed();
+  const navigate = useNavigate();
+  const getLikeFn = useServerFn(getLikeState);
+  const toggleFn = useServerFn(toggleLike);
+  const [likes, setLikes] = useState(initialLikes);
+  const [liked, setLiked] = useState(false);
+
+  useEffect(() => {
+    if (!authed) { setLiked(false); return; }
+    getLikeFn({ data: { postId } }).then((r) => setLiked(r.liked)).catch(() => {});
+  }, [authed, postId, getLikeFn]);
+
   const url = typeof window !== "undefined" ? `${window.location.origin}/p/${shareId}` : "";
-  const copy = async () => {
+  const onShare = async () => {
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      try {
+        await (navigator as any).share({ title, url });
+        return;
+      } catch { /* user cancelled */ return; }
+    }
     try {
       await navigator.clipboard.writeText(url);
       toast.success(t("post.share.copied"));
     } catch { /* noop */ }
   };
-  const x = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
-  const li = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+
+  const onLike = async () => {
+    if (!authed) {
+      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
+      navigate({ to: "/auth" });
+      return;
+    }
+    const prev = liked;
+    setLiked(!prev);
+    setLikes((c) => c + (prev ? -1 : 1));
+    try {
+      const r = await toggleFn({ data: { postId } });
+      setLiked(r.liked);
+    } catch {
+      setLiked(prev);
+      setLikes((c) => c + (prev ? 1 : -1));
+    }
+  };
+
+  const onComment = () => {
+    const el = document.getElementById("comments");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const ta = document.getElementById("comment-input") as HTMLTextAreaElement | null;
+    setTimeout(() => ta?.focus(), 350);
+  };
+
   return (
-    <div className="mt-10 flex flex-wrap items-center gap-2 rounded-xl border border-ink/10 bg-white p-3">
-      <button onClick={copy} className="rounded-full bg-ink px-4 py-2 text-xs font-medium text-paper hover:opacity-90">
-        {t("post.share.copy")}
+    <div className="mt-10">
+      <button
+        onClick={onShare}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:opacity-90"
+      >
+        <Share2 className="h-4 w-4" />
+        {t("public.share")}
       </button>
-      <a href={x} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-full border border-ink/15 px-3 py-2 text-xs text-ink/80 hover:bg-ink/5">
-        <Twitter className="h-4 w-4" /> X
-      </a>
-      <a href={li} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-full border border-ink/15 px-3 py-2 text-xs text-ink/80 hover:bg-ink/5">
-        <Linkedin className="h-4 w-4" /> LinkedIn
-      </a>
+
+      <div className="mt-5 flex items-center justify-around">
+        <button
+          onClick={onLike}
+          className={`flex flex-col items-center gap-1 text-xs transition ${liked ? "text-brand" : "text-ink/60 hover:text-ink"}`}
+          aria-label="Like"
+        >
+          <Heart className={`h-6 w-6 ${liked ? "fill-current" : ""}`} />
+          <span className="tabular-nums">{likes}</span>
+        </button>
+        <button
+          onClick={onComment}
+          className="flex flex-col items-center gap-1 text-xs text-ink/60 transition hover:text-ink"
+          aria-label="Comment"
+        >
+          <MessageCircle className="h-6 w-6" />
+          <span className="tabular-nums">{commentsCount}</span>
+        </button>
+        <div className="flex flex-col items-center gap-1 text-xs text-ink/60">
+          <Eye className="h-6 w-6" />
+          <span className="tabular-nums">{viewsCount}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -221,58 +304,6 @@ function useAuthed() {
     return () => sub.subscription.unsubscribe();
   }, []);
   return authed;
-}
-
-function LikeRow({ postId, initialCount, viewsCount }: { postId: string; initialCount: number; viewsCount: number }) {
-  const { t } = useT();
-  const authed = useAuthed();
-  const navigate = useNavigate();
-  const getLikeFn = useServerFn(getLikeState);
-  const toggleFn = useServerFn(toggleLike);
-  const [count, setCount] = useState(initialCount);
-  const [liked, setLiked] = useState(false);
-
-  useEffect(() => {
-    if (!authed) { setLiked(false); return; }
-    getLikeFn({ data: { postId } }).then((r) => setLiked(r.liked)).catch(() => {});
-  }, [authed, postId, getLikeFn]);
-
-  const onClick = async () => {
-    if (!authed) {
-      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
-      navigate({ to: "/auth" });
-      return;
-    }
-    const prevLiked = liked;
-    setLiked(!prevLiked);
-    setCount((c) => c + (prevLiked ? -1 : 1));
-    try {
-      const r = await toggleFn({ data: { postId } });
-      setLiked(r.liked);
-    } catch {
-      setLiked(prevLiked);
-      setCount((c) => c + (prevLiked ? 1 : -1));
-    }
-  };
-
-  return (
-    <div className="mt-3 flex items-center gap-3">
-      <button
-        onClick={onClick}
-        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
-          liked
-            ? "border-brand bg-brand text-white"
-            : "border-ink/20 bg-white text-ink hover:bg-ink/5"
-        }`}
-      >
-        <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} /> {count}
-      </button>
-      <span className="flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-4 py-2 text-sm text-ink/70">
-        <Eye className="h-4 w-4" /> {viewsCount}
-      </span>
-      {!authed && <span className="text-xs text-ink/50">{t("public.signin.like")}</span>}
-    </div>
-  );
 }
 
 function Comments({ postId }: { postId: string; initialCount: number }) {
@@ -319,10 +350,11 @@ function Comments({ postId }: { postId: string; initialCount: number }) {
   };
 
   return (
-    <section className="mt-12">
+    <section id="comments" className="mt-12 scroll-mt-6">
       <h2 className="font-serif text-xl">{t("public.comments.title")}</h2>
       <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-2 rounded-xl border border-ink/15 bg-white p-3 focus-within:border-brand/50">
         <textarea
+          id="comment-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={authed ? t("public.comments.placeholder") : t("public.signin.comment")}
