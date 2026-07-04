@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Heart, MessageCircle, Eye, Twitter, Linkedin, ArrowLeft, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Eye, Share2, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPublicPostByShareId,
@@ -144,8 +144,14 @@ function PublicPostPage() {
         <p className="mt-10 text-center text-xs text-ink/40 italic">
           {t("public.disclaimer")}
         </p>
-        <ShareRow shareId={shareId} title={post.title} />
-        <LikeRow postId={post.id} initialCount={post.likes_count} viewsCount={(post as any).views_count ?? 0} />
+        <EngagementBar
+          shareId={shareId}
+          title={post.title}
+          postId={post.id}
+          initialLikes={post.likes_count}
+          viewsCount={(post as any).views_count ?? 0}
+          commentsCount={post.comments_count}
+        />
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
       </main>
