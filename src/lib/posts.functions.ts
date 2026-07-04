@@ -22,7 +22,7 @@ export const listPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await tbl(context.supabase)
-      .select("id, title, status, updated_at, created_at, is_public, share_id, likes_count, comments_count, thumbnail_url")
+      .select("id, title, status, updated_at, created_at, is_public, in_feed, share_id, likes_count, comments_count, thumbnail_url")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []) as Array<
@@ -79,14 +79,8 @@ export const updatePost = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     // Regenerate the shareable thumbnail if the title changed on a public post.
     if (typeof patch.title === "string") {
-      const { data: row } = await tbl(context.supabase)
-        .select("is_public")
-        .eq("id", id)
-        .maybeSingle();
-      if (row?.is_public) {
-        const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
-        ensurePostThumbnailBackground(id);
-      }
+      const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
+      ensurePostThumbnailBackground(id);
     }
     return { ok: true };
   });
@@ -106,12 +100,11 @@ export const regenerateThumbnail = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Verify ownership via RLS-scoped read before running the privileged generator.
     const { data: row, error } = await tbl(context.supabase)
-      .select("id, is_public")
+      .select("id")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Post not found");
-    if (!row.is_public) throw new Error("Make the post public before generating a thumbnail.");
     const { ensurePostThumbnail } = await import("./thumbnails.server");
     await ensurePostThumbnail(data.id);
     const { data: fresh } = await tbl(context.supabase)
@@ -200,14 +193,9 @@ export const generateBlogPost = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (updateError) throw new Error(updateError.message);
 
-    const { data: row } = await tbl(context.supabase)
-      .select("is_public")
-      .eq("id", data.id)
-      .maybeSingle();
-    if (row?.is_public) {
-      const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
-      ensurePostThumbnailBackground(data.id);
-    }
+    // Auto-generate a cover image for every freshly written article.
+    const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
+    ensurePostThumbnailBackground(data.id);
 
     return { content: md, title };
   });

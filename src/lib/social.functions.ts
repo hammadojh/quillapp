@@ -45,6 +45,7 @@ export const listLandingPosts = createServerFn({ method: "GET" }).handler(async 
   const { data, error } = await sb(publicSupabase())
     .select("id, share_id, title, content, likes_count, comments_count, views_count, updated_at, user_id, thumbnail_url")
     .eq("is_public", true)
+    .eq("in_feed", true)
     .order("updated_at", { ascending: false })
     .limit(9);
   if (error) throw new Error(error.message);
@@ -88,6 +89,7 @@ export const getProfileByUsername = createServerFn({ method: "GET" })
       .select("id, share_id, title, content, likes_count, comments_count, views_count, updated_at, user_id, thumbnail_url")
       .eq("user_id", prof.user_id)
       .eq("is_public", true)
+      .eq("in_feed", true)
       .order("updated_at", { ascending: false });
     const summarized = (posts ?? []).map((r: any) => ({ ...r, content: excerpt(r.content, 160) }));
     return { profile: prof, posts: summarized as PostSummary[] };
@@ -236,13 +238,39 @@ export const setPostVisibility = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), is_public: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    // When flipping back to private, also remove from the public feed.
+    const patch: Record<string, unknown> = { is_public: data.is_public };
+    if (!data.is_public) patch.in_feed = false;
     const { error } = await sb(context.supabase)
-      .update({ is_public: data.is_public })
+      .update(patch)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     if (data.is_public) {
       const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
       ensurePostThumbnailBackground(data.id);
     }
+    return { ok: true };
+  });
+
+export const setPostFeedInclusion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), in_feed: z.boolean() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    // Only publicly shareable posts may appear on the feed.
+    const { data: row, error: readErr } = await sb(context.supabase)
+      .select("is_public")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!row) throw new Error("Post not found");
+    if (data.in_feed && !row.is_public) {
+      throw new Error("Make the post public via link before adding it to the feed.");
+    }
+    const { error } = await sb(context.supabase)
+      .update({ in_feed: data.in_feed })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });

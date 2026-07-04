@@ -66,7 +66,7 @@ export async function ensurePostThumbnail(postId: string): Promise<void> {
     .eq("id", postId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!post || !post.is_public) return;
+  if (!post) return;
 
   const { data: prof } = await (supabaseAdmin.from("profiles") as any)
     .select("display_name, username")
