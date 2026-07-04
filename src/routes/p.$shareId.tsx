@@ -469,14 +469,30 @@ function FloatingActions({
       }`}
     >
       <button
-        onClick={onShare}
-        aria-label={t("public.share")}
-        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-ink/85 text-paper shadow-lg shadow-ink/20 ring-1 ring-white/20 backdrop-blur-xl backdrop-saturate-150 transition active:scale-95"
+        onClick={() => {
+          if (!authed) {
+            sessionStorage.setItem("quill.afterAuth", window.location.pathname + "#comments");
+            navigate({ to: "/auth" });
+            return;
+          }
+          onComment();
+        }}
+        aria-label={t("public.discuss")}
+        className="pointer-events-auto flex h-14 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-paper shadow-xl shadow-brand/40 ring-1 ring-white/10 transition active:scale-95"
       >
-        <Share2 className="h-5 w-5" />
+        <Mic className="h-5 w-5" />
+        <span>{t("public.discuss")}</span>
       </button>
 
       <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-white/55 p-1.5 shadow-md shadow-ink/10 ring-1 ring-ink/10 backdrop-blur-xl backdrop-saturate-150">
+        <button
+          onClick={onShare}
+          aria-label={t("public.share")}
+          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-ink/70 transition hover:text-ink"
+        >
+          <Share2 className="h-4 w-4" />
+        </button>
+        <span className="h-5 w-px bg-ink/10" aria-hidden />
         <button
           onClick={onLike}
           aria-label="Like"
@@ -486,15 +502,6 @@ function FloatingActions({
         >
           <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
           <span className="tabular-nums">{likes}</span>
-        </button>
-        <span className="h-5 w-px bg-ink/10" aria-hidden />
-        <button
-          onClick={onComment}
-          aria-label="Comment"
-          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-ink/70 transition hover:text-ink"
-        >
-          <MessageCircle className="h-4 w-4" />
-          <span className="tabular-nums">{commentsCount}</span>
         </button>
       </div>
     </div>
