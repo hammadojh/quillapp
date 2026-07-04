@@ -120,6 +120,7 @@ const dicts: Record<Lang, Dict> = {
     "public.comments.post": "نشر",
     "public.likes": "{n} إعجاب",
     "public.comments.count": "{n} تعليق",
+   "public.share": "مشاركة",
     "public.by": "بقلم",
     "public.disclaimer": "الأفكار الأصلية من المؤلف. التحرير والصياغة الفنية بمساعدة كويل.",
     "public.notfound": "هذا المقال غير متاح أو لم يعد عاماً.",
