@@ -295,8 +295,10 @@ function EngagementBar({
   const navigate = useNavigate();
   const getLikeFn = useServerFn(getLikeState);
   const toggleFn = useServerFn(toggleLike);
+  const shareFn = useServerFn(incrementPostShare);
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
+  const [shares, setShares] = useState(initialShares);
 
   useEffect(() => {
     if (!authed) { setLiked(false); return; }
@@ -305,6 +307,8 @@ function EngagementBar({
 
   const url = typeof window !== "undefined" ? `${window.location.origin}/p/${shareId}` : "";
   const onShare = async () => {
+    setShares((c) => c + 1);
+    shareFn({ data: { postId } }).catch(() => {});
     if (typeof navigator !== "undefined" && (navigator as any).share) {
       try {
         await (navigator as any).share({ title, url });
