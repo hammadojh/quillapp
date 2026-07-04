@@ -210,10 +210,10 @@ function JoinCTA() {
 
       {pool.length > 0 && (
         <div className="relative pt-10">
-          <div className="flex gap-3 overflow-hidden pl-4">
+          <div className="-mx-8 flex w-[calc(100%+4rem)] gap-3 overflow-hidden translate-x-8">
             <StaticRow items={a} />
           </div>
-          <div className="mt-3 flex gap-3 overflow-hidden pl-12">
+          <div className="-mx-8 mt-3 flex w-[calc(100%+4rem)] gap-3 overflow-hidden -translate-x-8">
             <StaticRow items={b} />
           </div>
         </div>
