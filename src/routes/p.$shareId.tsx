@@ -447,6 +447,8 @@ function FloatingActions({
 
   const url = typeof window !== "undefined" ? `${window.location.origin}/p/${shareId}` : "";
   const onShare = async () => {
+    setShares((c) => c + 1);
+    shareFn({ data: { postId } }).catch(() => {});
     if (typeof navigator !== "undefined" && (navigator as any).share) {
       try { await (navigator as any).share({ title, url }); return; } catch { return; }
     }
