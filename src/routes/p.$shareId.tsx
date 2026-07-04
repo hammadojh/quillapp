@@ -370,7 +370,7 @@ function EngagementBar({
           aria-label={t("public.share")}
         >
           <Share2 className="h-6 w-6" />
-          <span>{t("public.share")}</span>
+          <span className="tabular-nums">{shares}</span>
         </button>
         <button
           onClick={onLike}
