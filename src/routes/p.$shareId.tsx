@@ -153,6 +153,7 @@ function PublicPostPage() {
           initialLikes={post.likes_count}
           viewsCount={(post as any).views_count ?? 0}
           commentsCount={post.comments_count}
+          initialShares={(post as any).shares_count ?? 0}
         />
         <Comments postId={post.id} initialCount={post.comments_count} />
         <JoinCTA />
@@ -163,6 +164,7 @@ function PublicPostPage() {
         postId={post.id}
         initialLikes={post.likes_count}
         commentsCount={post.comments_count}
+        initialShares={(post as any).shares_count ?? 0}
       />
     </div>
   );
