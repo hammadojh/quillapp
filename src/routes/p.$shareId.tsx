@@ -405,12 +405,14 @@ function FloatingActions({
   postId,
   initialLikes,
   commentsCount,
+  initialShares,
 }: {
   shareId: string;
   title: string;
   postId: string;
   initialLikes: number;
   commentsCount: number;
+  initialShares: number;
 }) {
   const { t } = useT();
   const authed = useAuthed();
