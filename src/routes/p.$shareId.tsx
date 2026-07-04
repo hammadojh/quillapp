@@ -306,58 +306,6 @@ function useAuthed() {
   return authed;
 }
 
-function LikeRow({ postId, initialCount, viewsCount }: { postId: string; initialCount: number; viewsCount: number }) {
-  const { t } = useT();
-  const authed = useAuthed();
-  const navigate = useNavigate();
-  const getLikeFn = useServerFn(getLikeState);
-  const toggleFn = useServerFn(toggleLike);
-  const [count, setCount] = useState(initialCount);
-  const [liked, setLiked] = useState(false);
-
-  useEffect(() => {
-    if (!authed) { setLiked(false); return; }
-    getLikeFn({ data: { postId } }).then((r) => setLiked(r.liked)).catch(() => {});
-  }, [authed, postId, getLikeFn]);
-
-  const onClick = async () => {
-    if (!authed) {
-      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
-      navigate({ to: "/auth" });
-      return;
-    }
-    const prevLiked = liked;
-    setLiked(!prevLiked);
-    setCount((c) => c + (prevLiked ? -1 : 1));
-    try {
-      const r = await toggleFn({ data: { postId } });
-      setLiked(r.liked);
-    } catch {
-      setLiked(prevLiked);
-      setCount((c) => c + (prevLiked ? 1 : -1));
-    }
-  };
-
-  return (
-    <div className="mt-3 flex items-center gap-3">
-      <button
-        onClick={onClick}
-        className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
-          liked
-            ? "border-brand bg-brand text-white"
-            : "border-ink/20 bg-white text-ink hover:bg-ink/5"
-        }`}
-      >
-        <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} /> {count}
-      </button>
-      <span className="flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-4 py-2 text-sm text-ink/70">
-        <Eye className="h-4 w-4" /> {viewsCount}
-      </span>
-      {!authed && <span className="text-xs text-ink/50">{t("public.signin.like")}</span>}
-    </div>
-  );
-}
-
 function Comments({ postId }: { postId: string; initialCount: number }) {
   const { t, lang } = useT();
   const authed = useAuthed();
@@ -402,10 +350,11 @@ function Comments({ postId }: { postId: string; initialCount: number }) {
   };
 
   return (
-    <section className="mt-12">
+    <section id="comments" className="mt-12 scroll-mt-6">
       <h2 className="font-serif text-xl">{t("public.comments.title")}</h2>
       <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-2 rounded-xl border border-ink/15 bg-white p-3 focus-within:border-brand/50">
         <textarea
+          id="comment-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={authed ? t("public.comments.placeholder") : t("public.signin.comment")}
