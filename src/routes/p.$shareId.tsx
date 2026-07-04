@@ -423,8 +423,10 @@ function FloatingActions({
   const navigate = useNavigate();
   const getLikeFn = useServerFn(getLikeState);
   const toggleFn = useServerFn(toggleLike);
+  const shareFn = useServerFn(incrementPostShare);
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
+  const [shares, setShares] = useState(initialShares);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
