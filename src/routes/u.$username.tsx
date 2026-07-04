@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Heart, MessageCircle, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { getProfileByUsername, getMyProfile, updateMyProfile } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,8 +82,6 @@ function ProfilePage() {
                   <h3 className="font-serif text-lg leading-snug group-hover:text-brand">{p.title}</h3>
                   <p className="mt-2 line-clamp-2 text-sm text-ink/65">{p.content}</p>
                   <div className="mt-3 flex items-center gap-3 text-xs text-ink/50">
-                    <span className="flex items-center gap-1"><Heart className="h-3.5 w-3.5" /> {p.likes_count}</span>
-                    <span className="flex items-center gap-1"><MessageCircle className="h-3.5 w-3.5" /> {p.comments_count}</span>
                     <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> {(p as any).views_count ?? 0}</span>
                   </div>
                   </div>
