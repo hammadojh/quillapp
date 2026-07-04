@@ -566,3 +566,182 @@ function Comments({ postId }: { postId: string; initialCount: number }) {
     </section>
   );
 }
+
+function DiscussModal({
+  step,
+  setStep,
+  postId,
+}: {
+  step: "choose" | "comment";
+  setStep: (s: null | "choose" | "comment") => void;
+  postId: string;
+}) {
+  const { t } = useT();
+  const authed = useAuthed();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const addFn = useServerFn(addComment);
+  const [text, setText] = useState("");
+  const [listening, setListening] = useState(false);
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const recRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (step === "comment") {
+      // Autofocus so the mobile keyboard opens
+      setTimeout(() => taRef.current?.focus(), 50);
+    }
+  }, [step]);
+
+  const close = () => {
+    try { recRef.current?.stop?.(); } catch { /* noop */ }
+    setStep(null);
+    setText("");
+    setListening(false);
+  };
+
+  const toNewArticle = () => {
+    close();
+    // Auth guard handled by /_authenticated/dashboard route.
+    sessionStorage.setItem("quill.afterAuth", "/dashboard");
+    navigate({ to: authed ? "/dashboard" : "/auth" });
+  };
+
+  const add = useMutation({
+    mutationFn: (content: string) => addFn({ data: { postId, content } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comments", postId] });
+      toast.success(t("public.comments.post"));
+      close();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const submitComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = text.trim();
+    if (!clean) return;
+    if (!authed) {
+      sessionStorage.setItem("quill.afterAuth", window.location.pathname);
+      sessionStorage.setItem("quill.pendingComment", JSON.stringify({ postId, content: clean }));
+      navigate({ to: "/auth" });
+      return;
+    }
+    add.mutate(clean);
+  };
+
+  const toggleVoice = () => {
+    const SR: any =
+      (typeof window !== "undefined" && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)) || null;
+    if (!SR) {
+      toast.error(t("public.discuss.voiceUnsupported"));
+      return;
+    }
+    if (listening) {
+      try { recRef.current?.stop?.(); } catch { /* noop */ }
+      setListening(false);
+      return;
+    }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = document.documentElement.lang === "ar" ? "ar-SA" : "en-US";
+    rec.onresult = (ev: any) => {
+      let out = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        out += ev.results[i][0].transcript;
+      }
+      setText((prev) => (prev ? prev.trimEnd() + " " : "") + out.trim());
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    try { rec.start(); setListening(true); } catch { setListening(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-ink/40" onClick={close} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative w-full max-w-md rounded-t-3xl bg-paper p-5 shadow-2xl sm:rounded-3xl"
+      >
+        <button
+          onClick={close}
+          aria-label={t("public.discuss.cancel")}
+          className="absolute end-3 top-3 rounded-full p-1.5 text-ink/50 hover:bg-ink/5 hover:text-ink"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        {step === "choose" && (
+          <div className="pt-2">
+            <h3 className="text-center font-serif text-lg text-ink">
+              {t("public.discuss.title")}
+            </h3>
+            <div className="mt-5 flex flex-col gap-3">
+              <button
+                onClick={() => setStep("comment")}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-brand px-5 py-4 text-sm font-semibold text-paper shadow-lg shadow-brand/25 hover:opacity-90"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t("public.discuss.comment")}
+              </button>
+              <button
+                onClick={toNewArticle}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-ink/15 bg-white px-5 py-4 text-sm font-semibold text-ink hover:bg-ink/[0.03]"
+              >
+                <Pencil className="h-4 w-4" />
+                {t("public.discuss.new")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "comment" && (
+          <form onSubmit={submitComment} className="pt-2">
+            <h3 className="font-serif text-lg text-ink">
+              {t("public.discuss.commentTitle")}
+            </h3>
+            <textarea
+              ref={taRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={t("public.discuss.commentPlaceholder")}
+              rows={4}
+              className="mt-3 w-full resize-none rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink focus:border-brand/50 focus:outline-none"
+            />
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={toggleVoice}
+                aria-label="Voice input"
+                aria-pressed={listening}
+                className={`flex h-11 w-11 items-center justify-center rounded-full border transition ${
+                  listening
+                    ? "border-brand bg-brand text-paper animate-pulse"
+                    : "border-ink/15 bg-white text-ink/70 hover:text-ink"
+                }`}
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+              <div className="flex items-center gap-2">
+                {listening && (
+                  <span className="text-xs text-ink/50">{t("public.discuss.listening")}</span>
+                )}
+                <button
+                  type="submit"
+                  disabled={!text.trim() || add.isPending}
+                  className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-paper shadow-md shadow-brand/25 hover:opacity-90 disabled:opacity-50"
+                >
+                  {add.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("public.discuss.send")}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
