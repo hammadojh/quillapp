@@ -570,7 +570,7 @@ function GeneratedView({
   updateFn,
   generateFn,
 }: {
-  post: { id: string; title: string; content: string; is_public: boolean; share_id: string | null };
+  post: { id: string; title: string; content: string; is_public: boolean; in_feed?: boolean; share_id: string | null };
   onUpdated: () => void;
   updateFn: ReturnType<typeof useServerFn<typeof updatePost>>;
   generateFn: ReturnType<typeof useServerFn<typeof generateBlogPost>>;
@@ -653,6 +653,9 @@ function GeneratedView({
   const visibilityFn = useServerFn(setPostVisibility);
   const [isPublic, setIsPublic] = useState(post.is_public);
   useEffect(() => setIsPublic(post.is_public), [post.is_public]);
+  const feedFn = useServerFn(setPostFeedInclusion);
+  const [inFeed, setInFeed] = useState(!!post.in_feed);
+  useEffect(() => setInFeed(!!post.in_feed), [post.in_feed]);
   const regenThumbFn = useServerFn(regenerateThumbnail);
   const [thumbBusy, setThumbBusy] = useState(false);
   const thumbStamp = (post as any).thumbnail_url as string | null;
@@ -670,12 +673,24 @@ function GeneratedView({
   };
   const togglePublic = async (next: boolean) => {
     setIsPublic(next);
+    if (!next) setInFeed(false);
     try {
       await visibilityFn({ data: { id: post.id, is_public: next } });
       toast.success(next ? t("post.privacy.public") : t("post.privacy.private"));
       onUpdated();
     } catch (e) {
       setIsPublic(!next);
+      toast.error(e instanceof Error ? e.message : "Failed");
+    }
+  };
+  const toggleFeed = async (next: boolean) => {
+    setInFeed(next);
+    try {
+      await feedFn({ data: { id: post.id, in_feed: next } });
+      toast.success(next ? t("post.feed.on") : t("post.feed.off"));
+      onUpdated();
+    } catch (e) {
+      setInFeed(!next);
       toast.error(e instanceof Error ? e.message : "Failed");
     }
   };
