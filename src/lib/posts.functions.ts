@@ -22,7 +22,7 @@ export const listPosts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await tbl(context.supabase)
-      .select("id, title, status, updated_at, created_at, is_public, share_id, likes_count, comments_count, thumbnail_url")
+      .select("id, title, status, updated_at, created_at, is_public, in_feed, share_id, likes_count, comments_count, thumbnail_url")
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []) as Array<
