@@ -23,6 +23,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedPostPostIdRouteImport } from './routes/_authenticated/post.$postId'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicThumbPostIdRouteImport } from './routes/api/public/thumb.$postId'
 
 const McpRoute = McpRouteImport.update({
@@ -97,6 +98,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicThumbPostIdRoute = ApiPublicThumbPostIdRouteImport.update({
   id: '/api/public/thumb/$postId',
   path: '/api/public/thumb/$postId',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/post/$postId': typeof AuthenticatedPostPostIdRoute
   '/api/public/thumb/$postId': typeof ApiPublicThumbPostIdRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/post/$postId': typeof AuthenticatedPostPostIdRoute
   '/api/public/thumb/$postId': typeof ApiPublicThumbPostIdRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/p/$shareId': typeof PShareIdRoute
   '/u/$username': typeof UUsernameRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/post/$postId': typeof AuthenticatedPostPostIdRoute
   '/api/public/thumb/$postId': typeof ApiPublicThumbPostIdRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/p/$shareId'
     | '/u/$username'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/post/$postId'
     | '/api/public/thumb/$postId'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/p/$shareId'
     | '/u/$username'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/post/$postId'
     | '/api/public/thumb/$postId'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/p/$shareId'
     | '/u/$username'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/post/$postId'
     | '/api/public/thumb/$postId'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   PShareIdRoute: typeof PShareIdRoute
   UUsernameRoute: typeof UUsernameRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicThumbPostIdRoute: typeof ApiPublicThumbPostIdRoute
 }
@@ -321,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/thumb/$postId': {
       id: '/api/public/thumb/$postId'
       path: '/api/public/thumb/$postId'
@@ -357,6 +377,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTranscribeRoute: ApiTranscribeRoute,
   PShareIdRoute: PShareIdRoute,
   UUsernameRoute: UUsernameRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicThumbPostIdRoute: ApiPublicThumbPostIdRoute,
 }
