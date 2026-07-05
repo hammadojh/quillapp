@@ -69,8 +69,14 @@ function AuthPage() {
 
   const onGoogle = async () => {
     setBusy(true);
+    // If a consent/return URL is pending, bring the Google round-trip back to
+    // /auth so our SIGNED_IN listener can dispatch to that saved target.
+    const pending = typeof window !== "undefined" && sessionStorage.getItem("quill.afterAuth");
+    const redirect_uri = pending
+      ? `${window.location.origin}/auth`
+      : window.location.origin;
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri,
     });
     if (result.error) {
       toast.error(result.error.message ?? "Google sign in failed");
