@@ -37,6 +37,8 @@ function PostPage() {
     queryFn: () => getFn({ data: { id: postId } }),
   });
 
+  const [justGenerated, setJustGenerated] = useState(false);
+
   if (isLoading || !post) {
     return (
       <div className="min-h-screen bg-paper p-10 text-ink/50">…</div>
@@ -68,7 +70,9 @@ function PostPage() {
         </div>
       </header>
 
-      {post.status === "generated" ? (
+      {post.status === "generated" && justGenerated ? (
+        <ReadyView post={post as any} onRead={() => setJustGenerated(false)} />
+      ) : post.status === "generated" ? (
         <GeneratedView
           post={post as any}
           onUpdated={() => qc.invalidateQueries({ queryKey: ["post", postId] })}
@@ -81,7 +85,10 @@ function PostPage() {
           initialMessages={(post.interview_messages as unknown as UIMessage[]) ?? []}
           updateFn={updateFn}
           generateFn={generateFn}
-          onGenerated={() => qc.invalidateQueries({ queryKey: ["post", postId] })}
+          onGenerated={() => {
+            setJustGenerated(true);
+            qc.invalidateQueries({ queryKey: ["post", postId] });
+          }}
         />
       )}
     </div>
