@@ -194,8 +194,14 @@ export const generateBlogPost = createServerFn({ method: "POST" })
     if (updateError) throw new Error(updateError.message);
 
     // Auto-generate a cover image for every freshly written article.
-    const { ensurePostThumbnailBackground } = await import("./thumbnails.server");
-    ensurePostThumbnailBackground(data.id);
+    // Await it so the client's "generating" modal doesn't dismiss to a card
+    // without an image (fire-and-forget can be killed on serverless workers).
+    try {
+      const { ensurePostThumbnail } = await import("./thumbnails.server");
+      await ensurePostThumbnail(data.id);
+    } catch (e) {
+      console.error("[posts.generate] thumbnail failed", e);
+    }
 
     return { content: md, title };
   });
