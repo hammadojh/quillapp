@@ -577,6 +577,82 @@ function InterviewView({
   );
 }
 
+function ReadyView({ post, onRead }: { post: { id: string; title: string; share_id: string | null; is_public: boolean; thumbnail_url?: string | null }; onRead: () => void }) {
+  const { t } = useT();
+  const visibilityFn = useServerFn(setPostVisibility);
+  const [sharing, setSharing] = useState(false);
+  const thumbStamp = (post as any).thumbnail_url as string | null;
+
+  const doShare = async () => {
+    setSharing(true);
+    try {
+      let shareId = post.share_id;
+      if (!post.is_public) {
+        await visibilityFn({ data: { id: post.id, is_public: true } });
+      }
+      if (!shareId) shareId = post.share_id;
+      const url = shareId
+        ? `${window.location.origin}/p/${shareId}`
+        : window.location.href;
+      const shareData: ShareData = { title: post.title, url };
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        try { await navigator.share(shareData); } catch (e) {
+          if ((e as { name?: string })?.name !== "AbortError") throw e;
+        }
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success(t("post.share.copied"));
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  return (
+    <main className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-16">
+      <div className="text-center">
+        <p className="text-xs uppercase tracking-widest text-brand">{t("toast.ready")}</p>
+        <h1 className="mt-2 font-serif text-3xl tracking-tight sm:text-4xl">{t("post.ready.title")}</h1>
+        <p className="mt-2 text-ink/60">{t("post.ready.sub")}</p>
+      </div>
+
+      <div className="mt-8 overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm">
+        <div className="aspect-[1200/630] w-full bg-ink/5">
+          {thumbStamp ? (
+            <img src={thumbUrl(post.id, thumbStamp)} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-ink/30">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
+        </div>
+        <div className="p-5">
+          <h2 className="font-serif text-2xl leading-snug text-ink">{post.title}</h2>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <button
+          onClick={onRead}
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-paper hover:opacity-90"
+        >
+          {t("post.ready.read")}
+        </button>
+        <button
+          onClick={doShare}
+          disabled={sharing}
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-3 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-50"
+        >
+          {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+          {t("post.ready.share")}
+        </button>
+      </div>
+    </main>
+  );
+}
+
 function GeneratedView({
   post,
   onUpdated,
