@@ -30,6 +30,7 @@ function PostPage() {
   const getFn = useServerFn(getPost);
   const updateFn = useServerFn(updatePost);
   const generateFn = useServerFn(generateBlogPost);
+  const thumbFn = useServerFn(regenerateThumbnail);
   const deleteFn = useServerFn(deletePost);
 
   const { data: post, isLoading } = useQuery({
@@ -85,6 +86,7 @@ function PostPage() {
           initialMessages={(post.interview_messages as unknown as UIMessage[]) ?? []}
           updateFn={updateFn}
           generateFn={generateFn}
+          thumbFn={thumbFn}
           onGenerated={() => {
             setJustGenerated(true);
             qc.invalidateQueries({ queryKey: ["post", postId] });
@@ -100,12 +102,14 @@ function InterviewView({
   initialMessages,
   updateFn,
   generateFn,
+  thumbFn,
   onGenerated,
 }: {
   postId: string;
   initialMessages: UIMessage[];
   updateFn: ReturnType<typeof useServerFn<typeof updatePost>>;
   generateFn: ReturnType<typeof useServerFn<typeof generateBlogPost>>;
+  thumbFn: ReturnType<typeof useServerFn<typeof regenerateThumbnail>>;
   onGenerated: () => void;
 }) {
   const { t, lang } = useT();
@@ -351,6 +355,19 @@ function InterviewView({
 
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
+  // Staged progress: rotating phrase during article gen, then title+brief card
+  // during image gen so the wait feels alive.
+  const [genStage, setGenStage] = useState<"writing" | "image">("writing");
+  const [writingPhraseIdx, setWritingPhraseIdx] = useState(0);
+  const [genPreview, setGenPreview] = useState<{ title: string; brief: string } | null>(null);
+  const writingPhrases = [t("post.gen.style"), t("post.gen.writing"), t("post.gen.finalizing")];
+  useEffect(() => {
+    if (!generating || genStage !== "writing") return;
+    const id = window.setInterval(() => {
+      setWritingPhraseIdx((i) => (i + 1) % writingPhrases.length);
+    }, 3500);
+    return () => window.clearInterval(id);
+  }, [generating, genStage, writingPhrases.length]);
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -366,14 +383,30 @@ function InterviewView({
 
   const generate = async () => {
     setGenerating(true);
+    setGenStage("writing");
+    setWritingPhraseIdx(0);
+    setGenPreview(null);
     try {
-      await generateFn({ data: { id: postId, language: lang } });
+      const res = await generateFn({ data: { id: postId, language: lang } });
+      // Extract a short brief: first non-heading paragraph, ~180 chars.
+      const brief = (res.content ?? "")
+        .split(/\n+/)
+        .map((l) => l.trim())
+        .find((l) => l && !l.startsWith("#") && !l.startsWith(">")) ?? "";
+      setGenPreview({ title: res.title, brief: brief.slice(0, 180) });
+      setGenStage("image");
+      try {
+        await thumbFn({ data: { id: postId } });
+      } catch (e) {
+        console.error("thumbnail failed", e);
+      }
       toast.success(t("toast.ready"));
       onGenerated();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not generate");
     } finally {
       setGenerating(false);
+      setGenPreview(null);
     }
   };
 
@@ -457,12 +490,36 @@ function InterviewView({
 
       {generating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-6 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-paper p-8 text-center shadow-2xl">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand/10">
-              <Loader2 className="h-7 w-7 animate-spin text-brand" />
-            </div>
-            <h2 className="mt-5 font-serif text-2xl text-ink">{t("post.generating")}</h2>
-            <p className="mt-2 text-sm text-ink/60">{t("post.generating.sub")}</p>
+          <div className="w-full max-w-sm rounded-2xl bg-paper p-6 text-center shadow-2xl sm:p-8">
+            {genStage === "writing" || !genPreview ? (
+              <>
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand/10">
+                  <Loader2 className="h-7 w-7 animate-spin text-brand" />
+                </div>
+                <h2 key={writingPhraseIdx} className="mt-5 font-serif text-2xl text-ink transition-opacity duration-500">
+                  {writingPhrases[writingPhraseIdx]}
+                </h2>
+                <p className="mt-2 text-sm text-ink/60">{t("post.generating.sub")}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] uppercase tracking-widest text-brand">
+                  {t("post.gen.draftLabel")}
+                </p>
+                <h2 className="mt-2 font-serif text-2xl leading-snug text-ink">
+                  {genPreview.title}
+                </h2>
+                {genPreview.brief && (
+                  <p className="mt-3 text-sm leading-relaxed text-ink/70 line-clamp-3">
+                    {genPreview.brief}
+                  </p>
+                )}
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm text-ink/60">
+                  <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                  {t("post.gen.image")}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
