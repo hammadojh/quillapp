@@ -30,6 +30,7 @@ function PostPage() {
   const getFn = useServerFn(getPost);
   const updateFn = useServerFn(updatePost);
   const generateFn = useServerFn(generateBlogPost);
+  const thumbFn = useServerFn(regenerateThumbnail);
   const deleteFn = useServerFn(deletePost);
 
   const { data: post, isLoading } = useQuery({
@@ -85,6 +86,7 @@ function PostPage() {
           initialMessages={(post.interview_messages as unknown as UIMessage[]) ?? []}
           updateFn={updateFn}
           generateFn={generateFn}
+          thumbFn={thumbFn}
           onGenerated={() => {
             setJustGenerated(true);
             qc.invalidateQueries({ queryKey: ["post", postId] });
