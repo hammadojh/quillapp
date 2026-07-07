@@ -355,6 +355,19 @@ function InterviewView({
 
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
+  // Staged progress: rotating phrase during article gen, then title+brief card
+  // during image gen so the wait feels alive.
+  const [genStage, setGenStage] = useState<"writing" | "image">("writing");
+  const [writingPhraseIdx, setWritingPhraseIdx] = useState(0);
+  const [genPreview, setGenPreview] = useState<{ title: string; brief: string } | null>(null);
+  const writingPhrases = [t("post.gen.style"), t("post.gen.writing"), t("post.gen.finalizing")];
+  useEffect(() => {
+    if (!generating || genStage !== "writing") return;
+    const id = window.setInterval(() => {
+      setWritingPhraseIdx((i) => (i + 1) % writingPhrases.length);
+    }, 3500);
+    return () => window.clearInterval(id);
+  }, [generating, genStage, writingPhrases.length]);
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -370,14 +383,30 @@ function InterviewView({
 
   const generate = async () => {
     setGenerating(true);
+    setGenStage("writing");
+    setWritingPhraseIdx(0);
+    setGenPreview(null);
     try {
-      await generateFn({ data: { id: postId, language: lang } });
+      const res = await generateFn({ data: { id: postId, language: lang } });
+      // Extract a short brief: first non-heading paragraph, ~180 chars.
+      const brief = (res.content ?? "")
+        .split(/\n+/)
+        .map((l) => l.trim())
+        .find((l) => l && !l.startsWith("#") && !l.startsWith(">")) ?? "";
+      setGenPreview({ title: res.title, brief: brief.slice(0, 180) });
+      setGenStage("image");
+      try {
+        await thumbFn({ data: { id: postId } });
+      } catch (e) {
+        console.error("thumbnail failed", e);
+      }
       toast.success(t("toast.ready"));
       onGenerated();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not generate");
     } finally {
       setGenerating(false);
+      setGenPreview(null);
     }
   };
 
