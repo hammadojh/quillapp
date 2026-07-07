@@ -102,12 +102,14 @@ function InterviewView({
   initialMessages,
   updateFn,
   generateFn,
+  thumbFn,
   onGenerated,
 }: {
   postId: string;
   initialMessages: UIMessage[];
   updateFn: ReturnType<typeof useServerFn<typeof updatePost>>;
   generateFn: ReturnType<typeof useServerFn<typeof generateBlogPost>>;
+  thumbFn: ReturnType<typeof useServerFn<typeof regenerateThumbnail>>;
   onGenerated: () => void;
 }) {
   const { t, lang } = useT();
