@@ -490,12 +490,36 @@ function InterviewView({
 
       {generating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-6 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-paper p-8 text-center shadow-2xl">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand/10">
-              <Loader2 className="h-7 w-7 animate-spin text-brand" />
-            </div>
-            <h2 className="mt-5 font-serif text-2xl text-ink">{t("post.generating")}</h2>
-            <p className="mt-2 text-sm text-ink/60">{t("post.generating.sub")}</p>
+          <div className="w-full max-w-sm rounded-2xl bg-paper p-6 text-center shadow-2xl sm:p-8">
+            {genStage === "writing" || !genPreview ? (
+              <>
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand/10">
+                  <Loader2 className="h-7 w-7 animate-spin text-brand" />
+                </div>
+                <h2 key={writingPhraseIdx} className="mt-5 font-serif text-2xl text-ink transition-opacity duration-500">
+                  {writingPhrases[writingPhraseIdx]}
+                </h2>
+                <p className="mt-2 text-sm text-ink/60">{t("post.generating.sub")}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] uppercase tracking-widest text-brand">
+                  {t("post.gen.draftLabel")}
+                </p>
+                <h2 className="mt-2 font-serif text-2xl leading-snug text-ink">
+                  {genPreview.title}
+                </h2>
+                {genPreview.brief && (
+                  <p className="mt-3 text-sm leading-relaxed text-ink/70 line-clamp-3">
+                    {genPreview.brief}
+                  </p>
+                )}
+                <div className="mt-6 flex items-center justify-center gap-2 text-sm text-ink/60">
+                  <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                  {t("post.gen.image")}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
