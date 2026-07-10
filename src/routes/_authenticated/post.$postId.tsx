@@ -109,6 +109,8 @@ function InterviewView({
   updateFn,
   generateFn,
   thumbFn,
+  depthFn,
+  researchFn,
   onGenerated,
 }: {
   postId: string;
@@ -116,6 +118,8 @@ function InterviewView({
   updateFn: ReturnType<typeof useServerFn<typeof updatePost>>;
   generateFn: ReturnType<typeof useServerFn<typeof generateBlogPost>>;
   thumbFn: ReturnType<typeof useServerFn<typeof regenerateThumbnail>>;
+  depthFn: ReturnType<typeof useServerFn<typeof scoreDepth>>;
+  researchFn: ReturnType<typeof useServerFn<typeof getResearchForTurn>>;
   onGenerated: () => void;
 }) {
   const { t, lang } = useT();
