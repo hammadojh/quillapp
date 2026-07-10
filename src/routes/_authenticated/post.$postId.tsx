@@ -391,7 +391,11 @@ function InterviewView({
     await sendMessage({ text });
   };
 
-  const generate = async () => {
+  // ---- Depth check ----
+  const [depthChecking, setDepthChecking] = useState(false);
+  const [depthWarning, setDepthWarning] = useState<DepthResult | null>(null);
+
+  const runGenerate = async () => {
     setGenerating(true);
     setGenStage("writing");
     setWritingPhraseIdx(0);
@@ -419,6 +423,51 @@ function InterviewView({
       setGenPreview(null);
     }
   };
+
+  const generate = async () => {
+    // Pre-generation depth check. If we can't score (missing key, network),
+    // we fail open and generate anyway.
+    setDepthChecking(true);
+    try {
+      const result = await depthFn({ data: { id: postId } });
+      setDepthChecking(false);
+      if (result.score < 6 && result.gaps.length > 0) {
+        setDepthWarning(result);
+        return;
+      }
+    } catch {
+      setDepthChecking(false);
+    }
+    await runGenerate();
+  };
+
+  // ---- Research cards (Firecrawl-backed, throttled) ----
+  const [research, setResearch] = useState<ResearchCard[]>([]);
+  const [researchLoading, setResearchLoading] = useState(false);
+  const lastResearchedTurnRef = useRef(0);
+  const fetchResearch = async () => {
+    if (researchLoading) return;
+    setResearchLoading(true);
+    try {
+      const { cards } = await researchFn({ data: { id: postId } });
+      setResearch(cards);
+      if (cards.length === 0) toast.info(t("research.none"));
+    } catch {
+      // silent fail — connector may not be linked
+    } finally {
+      setResearchLoading(false);
+    }
+  };
+  // Auto-fetch every 2 user turns after the first two.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const userTurns = messages.filter((m) => m.role === "user").length;
+    if (userTurns < 2) return;
+    if (userTurns % 2 !== 0) return;
+    if (userTurns === lastResearchedTurnRef.current) return;
+    lastResearchedTurnRef.current = userTurns;
+    fetchResearch();
+  }, [messages, status]);
 
   // Auto-trigger generation when AI emits the sentinel.
   const triggeredRef = useRef(false);
