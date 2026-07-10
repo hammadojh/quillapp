@@ -9,8 +9,10 @@ import remarkGfm from "remark-gfm";
 import { getPost, updatePost, generateBlogPost, deletePost, regenerateThumbnail } from "@/lib/posts.functions";
 import { thumbUrl } from "@/lib/thumb-url";
 import { setPostVisibility, setPostFeedInclusion } from "@/lib/social.functions";
+import { scoreDepth, type DepthResult } from "@/lib/depth.functions";
+import { getResearchForTurn, type ResearchCard } from "@/lib/research.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2, Globe, Lock, Link as LinkIcon, ExternalLink, Rss } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2, Globe, Lock, Link as LinkIcon, ExternalLink, Rss, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useT, LangToggle, type Lang } from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +34,8 @@ function PostPage() {
   const generateFn = useServerFn(generateBlogPost);
   const thumbFn = useServerFn(regenerateThumbnail);
   const deleteFn = useServerFn(deletePost);
+  const depthFn = useServerFn(scoreDepth);
+  const researchFn = useServerFn(getResearchForTurn);
 
   const { data: post, isLoading } = useQuery({
     queryKey: ["post", postId],
@@ -87,6 +91,8 @@ function PostPage() {
           updateFn={updateFn}
           generateFn={generateFn}
           thumbFn={thumbFn}
+          depthFn={depthFn}
+          researchFn={researchFn}
           onGenerated={() => {
             setJustGenerated(true);
             qc.invalidateQueries({ queryKey: ["post", postId] });
