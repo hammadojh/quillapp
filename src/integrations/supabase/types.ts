@@ -80,6 +80,8 @@ export type Database = {
           comments_count: number
           content: string
           created_at: string
+          depth_gaps: Json | null
+          depth_score: number | null
           id: string
           in_feed: boolean
           interview_messages: Json
@@ -98,6 +100,8 @@ export type Database = {
           comments_count?: number
           content?: string
           created_at?: string
+          depth_gaps?: Json | null
+          depth_score?: number | null
           id?: string
           in_feed?: boolean
           interview_messages?: Json
@@ -116,6 +120,8 @@ export type Database = {
           comments_count?: number
           content?: string
           created_at?: string
+          depth_gaps?: Json | null
+          depth_score?: number | null
           id?: string
           in_feed?: boolean
           interview_messages?: Json
@@ -138,6 +144,8 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string | null
+          style_completed_at: string | null
+          style_profile: Json | null
           updated_at: string
           user_id: string
           username: string
@@ -147,6 +155,8 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          style_completed_at?: string | null
+          style_profile?: Json | null
           updated_at?: string
           user_id: string
           username: string
@@ -156,6 +166,8 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          style_completed_at?: string | null
+          style_profile?: Json | null
           updated_at?: string
           user_id?: string
           username?: string
