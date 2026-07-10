@@ -9,8 +9,10 @@ import remarkGfm from "remark-gfm";
 import { getPost, updatePost, generateBlogPost, deletePost, regenerateThumbnail } from "@/lib/posts.functions";
 import { thumbUrl } from "@/lib/thumb-url";
 import { setPostVisibility, setPostFeedInclusion } from "@/lib/social.functions";
+import { scoreDepth, type DepthResult } from "@/lib/depth.functions";
+import { getResearchForTurn, type ResearchCard } from "@/lib/research.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2, Globe, Lock, Link as LinkIcon, ExternalLink, Rss } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2, Globe, Lock, Link as LinkIcon, ExternalLink, Rss, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useT, LangToggle, type Lang } from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +34,8 @@ function PostPage() {
   const generateFn = useServerFn(generateBlogPost);
   const thumbFn = useServerFn(regenerateThumbnail);
   const deleteFn = useServerFn(deletePost);
+  const depthFn = useServerFn(scoreDepth);
+  const researchFn = useServerFn(getResearchForTurn);
 
   const { data: post, isLoading } = useQuery({
     queryKey: ["post", postId],
@@ -87,6 +91,8 @@ function PostPage() {
           updateFn={updateFn}
           generateFn={generateFn}
           thumbFn={thumbFn}
+          depthFn={depthFn}
+          researchFn={researchFn}
           onGenerated={() => {
             setJustGenerated(true);
             qc.invalidateQueries({ queryKey: ["post", postId] });
@@ -103,6 +109,8 @@ function InterviewView({
   updateFn,
   generateFn,
   thumbFn,
+  depthFn,
+  researchFn,
   onGenerated,
 }: {
   postId: string;
@@ -110,6 +118,8 @@ function InterviewView({
   updateFn: ReturnType<typeof useServerFn<typeof updatePost>>;
   generateFn: ReturnType<typeof useServerFn<typeof generateBlogPost>>;
   thumbFn: ReturnType<typeof useServerFn<typeof regenerateThumbnail>>;
+  depthFn: ReturnType<typeof useServerFn<typeof scoreDepth>>;
+  researchFn: ReturnType<typeof useServerFn<typeof getResearchForTurn>>;
   onGenerated: () => void;
 }) {
   const { t, lang } = useT();
@@ -381,7 +391,11 @@ function InterviewView({
     await sendMessage({ text });
   };
 
-  const generate = async () => {
+  // ---- Depth check ----
+  const [depthChecking, setDepthChecking] = useState(false);
+  const [depthWarning, setDepthWarning] = useState<DepthResult | null>(null);
+
+  const runGenerate = async () => {
     setGenerating(true);
     setGenStage("writing");
     setWritingPhraseIdx(0);
@@ -409,6 +423,51 @@ function InterviewView({
       setGenPreview(null);
     }
   };
+
+  const generate = async () => {
+    // Pre-generation depth check. If we can't score (missing key, network),
+    // we fail open and generate anyway.
+    setDepthChecking(true);
+    try {
+      const result = await depthFn({ data: { id: postId } });
+      setDepthChecking(false);
+      if (result.score < 6 && result.gaps.length > 0) {
+        setDepthWarning(result);
+        return;
+      }
+    } catch {
+      setDepthChecking(false);
+    }
+    await runGenerate();
+  };
+
+  // ---- Research cards (Firecrawl-backed, throttled) ----
+  const [research, setResearch] = useState<ResearchCard[]>([]);
+  const [researchLoading, setResearchLoading] = useState(false);
+  const lastResearchedTurnRef = useRef(0);
+  const fetchResearch = async () => {
+    if (researchLoading) return;
+    setResearchLoading(true);
+    try {
+      const { cards } = await researchFn({ data: { id: postId } });
+      setResearch(cards);
+      if (cards.length === 0) toast.info(t("research.none"));
+    } catch {
+      // silent fail — connector may not be linked
+    } finally {
+      setResearchLoading(false);
+    }
+  };
+  // Auto-fetch every 2 user turns after the first two.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const userTurns = messages.filter((m) => m.role === "user").length;
+    if (userTurns < 2) return;
+    if (userTurns % 2 !== 0) return;
+    if (userTurns === lastResearchedTurnRef.current) return;
+    lastResearchedTurnRef.current = userTurns;
+    fetchResearch();
+  }, [messages, status]);
 
   // Auto-trigger generation when AI emits the sentinel.
   const triggeredRef = useRef(false);
@@ -524,6 +583,53 @@ function InterviewView({
         </div>
       )}
 
+      {depthChecking && !generating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-6 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl bg-paper p-6 text-center shadow-2xl">
+            <Loader2 className="mx-auto h-7 w-7 animate-spin text-brand" />
+            <p className="mt-3 text-sm text-ink/70">{t("depth.checking")}</p>
+          </div>
+        </div>
+      )}
+
+      {depthWarning && !generating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-6 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-paper p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-serif text-xl text-ink">{t("depth.title")}</h2>
+                <p className="mt-1 text-sm text-ink/60">{t("depth.body")}</p>
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-ink/80 rtl:pl-0 rtl:pr-5">
+                  {depthWarning.gaps.map((g, i) => (
+                    <li key={i}>{g}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+              <button
+                onClick={() => setDepthWarning(null)}
+                className="flex-1 rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper hover:opacity-90"
+              >
+                {t("depth.continue")}
+              </button>
+              <button
+                onClick={() => {
+                  setDepthWarning(null);
+                  runGenerate();
+                }}
+                className="flex-1 rounded-full border border-ink/20 bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
+              >
+                {t("depth.anyway")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto py-6">
         {messages.length === 0 && (
           <p className="text-center font-serif text-xl italic text-ink/40">
@@ -582,7 +688,55 @@ function InterviewView({
         {(status === "submitted" || status === "streaming") && messages.at(-1)?.role === "user" && (
           <div className="font-serif italic text-ink/40">{t("post.thinking")}</div>
         )}
+
+        {research.length > 0 && (
+          <div className="border-t border-ink/10 pt-4">
+            <div className="mb-2 text-[10px] uppercase tracking-widest text-brand/80">
+              {t("research.title")}
+            </div>
+            <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+              {research.map((c) => (
+                <a
+                  key={c.url}
+                  href={c.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-72 shrink-0 snap-start rounded-xl border border-ink/15 bg-white p-3 text-left transition hover:border-brand hover:shadow-sm"
+                >
+                  <div className="line-clamp-2 font-serif text-sm text-ink">{c.title}</div>
+                  {c.angle && (
+                    <div className="mt-1 line-clamp-2 text-xs italic text-brand">{c.angle}</div>
+                  )}
+                  {c.snippet && (
+                    <div className="mt-2 line-clamp-3 text-xs text-ink/60">{c.snippet}</div>
+                  )}
+                  <div className="mt-2 flex items-center gap-1 text-[10px] text-ink/40">
+                    <ExternalLink className="h-3 w-3" /> {new URL(c.url).hostname.replace(/^www\./, "")}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {!voiceMode && (
+        <div className="flex items-center justify-end border-t border-ink/5 pt-2">
+          <button
+            type="button"
+            onClick={fetchResearch}
+            disabled={researchLoading || messages.length < 2}
+            className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/70 hover:bg-ink/5 disabled:opacity-40"
+          >
+            {researchLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            {researchLoading ? t("research.loading") : t("research.inspire")}
+          </button>
+        </div>
+      )}
 
       {voiceMode ? (
         <div className="flex flex-col items-center gap-3 border-t border-ink/10 py-6">
