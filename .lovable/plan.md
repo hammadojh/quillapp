@@ -1,53 +1,84 @@
-## Goal
-Give every shared article its own PNG preview card (title + author) instead of the single static `og-default.png`.
+## What we're building
 
-## Approach
-Skip on-the-fly WASM PNG rendering (blocked on Cloudflare Workers — that's why the last attempt failed). Instead: generate the thumbnail once, store the finished PNG in Lovable Cloud Storage, and point `og:image` at the stable public URL.
+Three linked upgrades to the writing flow:
 
-Two options for how the PNG is produced — pick one:
+1. **Personal style profile** — captured once, applied to every future article.
+2. **Depth score + warning** — cheap articles get flagged before generation.
+3. **Inline research cards** — live web results surface during the interview so writers can react to related work.
 
-**Option A — AI-generated editorial card (recommended)**
-Use the AI Gateway image endpoint (`openai/gpt-image-2`, `quality: "low"`, 1536x1024 → resized/cropped to 1200x630) with a prompt that bakes in the article title, author name, and a magazine-cover art direction (serif type, warm paper background, subtle accent). Feels personalized and on-brand; no font/RTL headaches because the model renders the text itself. Cost: ~1 low-quality image per published post.
+---
 
-**Option B — Templated card via HTML → screenshot**
-Not viable in this stack (no headless browser on Workers). Skipping.
+## 1. Style profile (5–6 Q onboarding)
 
-Going with **Option A**.
+**When it fires:** the first time a user finishes generating an article. On the "Ready" screen we add a small "Set your writing style (1 min)" card that opens a modal. Also reachable anytime from Dashboard → "Writing style".
 
-## Trigger
-Generate the thumbnail the first time a post is made public (and re-generate when the title changes on an already-public post). No generation for private posts — saves credits.
+**Questions (adaptive to their answers, mostly free text/voice):**
+1. Which 2–3 writers/thinkers do you sound like — or wish you did?
+2. Pick your voice: authoritative · warm · punchy · playful · reflective (multi-select).
+3. Sentence rhythm: short & punchy · flowing · mixed.
+4. What do you never do in your writing? (banned words, clichés, hedging…)
+5. Favorite structural move: story-first · thesis-first · contrarian-hook · numbered breakdown.
+6. Paste 2–3 sentences you're proud of writing (optional, boosts the profile a lot).
 
-## Storage
-- New public Storage bucket `post-thumbnails`.
-- Object key: `${post.id}.png`.
-- Public read via bucket policy; writes only via server (service role).
-- Add `thumbnail_url TEXT` column on `posts` so the frontend/OG tags read a single field.
+Answers get summarized by the model into a compact `style_card` (voice, do's, don'ts, structural preference, ~150 words) stored on `profiles.style_profile jsonb`. That card is injected into the article-generation system prompt on every future post.
 
-## Server flow
-1. New server fn `ensurePostThumbnail({ postId })`:
-   - Loads post (title, author display name, share_id, is_public, thumbnail_url, updated_at).
-   - If not public → no-op.
-   - Builds prompt: editorial magazine cover, title text verbatim, small "by {author}" line, deterministic accent color from share_id, RTL-aware wording ("Arabic title, right-aligned" vs "English title, left-aligned") based on Unicode range of the title.
-   - Calls AI Gateway `/v1/images/generations` non-streaming (server-side, we just want the final bytes).
-   - Uploads base64 PNG to `post-thumbnails/${postId}.png` via `supabaseAdmin` storage.
-   - Writes public URL to `posts.thumbnail_url`.
-2. Hook into `setPostVisibility` (when flipping to public) and into `updatePost` (when title changes on a currently-public post) — call `ensurePostThumbnail` fire-and-forget so the UI stays snappy. Errors log but don't block.
-3. `p.$shareId.tsx` loader already fetches the post — extend it to return `thumbnail_url`. In `head()`, use `thumbnail_url` when present, fall back to `/og-default.png`.
+## 2. Depth score + warning gate
 
-## Fallback
-If image generation fails or the post has no thumbnail yet, `og:image` stays on the static `og-default.png` — no broken previews.
+**How it's scored (one AI call, cheap Gemini flash-lite):** transcript in → `{ score: 0–10, specificity, contrarianism, examples_count, gaps: [strings] }` out.
 
-## Cache-busting
-Append `?v={updated_at timestamp}` to the `og:image` URL so LinkedIn/X pick up the new card after a title edit (their own caches still apply — user must use the platform debuggers for already-shared links, same caveat as before).
+**Threshold:** score < 6 → the "Generate now" tap opens a warning modal:
+- "Your draft feels a bit thin. Here's what a reader might miss: {gaps}. Add more, or generate anyway?"
+- Buttons: **Keep interviewing** (default) · **Generate anyway**.
 
-## Files touched
-- New migration: add `thumbnail_url` column to `posts`; create `post-thumbnails` bucket + policies.
-- New: `src/lib/thumbnails.server.ts` (prompt + AI Gateway call + storage upload).
-- Edit: `src/lib/social.functions.ts` — call `ensurePostThumbnail` in `setPostVisibility`; return `thumbnail_url` from `getPublicPostByShareId`.
-- Edit: `src/lib/posts.functions.ts` — call `ensurePostThumbnail` from `updatePost` when title changed and post is public.
-- Edit: `src/routes/p.$shareId.tsx` — use `thumbnail_url` in `og:image` / `twitter:image` with cache-bust param.
+Score ≥ 6 skips the modal. Score gets stored on the post so we can show a small quality badge on the dashboard later.
 
-## Notes for the user
-- Only public posts get a custom card (saves credits and matches the sharing surface).
-- First share of a post may show the default card for a few seconds while generation completes; refresh once and the personalized card appears.
-- Already-tweeted links stay cached on X/LinkedIn until refreshed in their debuggers.
+## 3. Inline research cards (Firecrawl web search)
+
+**Trigger:** after every 2nd user turn (throttled), and when the user taps a new "Inspire me" chip in the composer.
+
+**What runs:** a server fn extracts the current topic + key claim from the last 3 turns, calls Firecrawl search (top 3 results), returns `[{ title, url, snippet, angle }]` where `angle` is a one-liner the model writes about how it relates ("this challenges your take", "backs up your example", "someone made the opposite argument").
+
+**UI:** a horizontal scroller of small cards below the newest assistant message. Tapping a card:
+- Expands the snippet.
+- Adds a chip below the composer: "Respond to: {title}" — pre-fills the interviewer's next probe ("How does your view differ from X's argument that…?").
+
+Cards are ephemeral (not stored). Firecrawl connector needs to be linked.
+
+---
+
+## Technical section
+
+**DB migration:**
+- `profiles.style_profile jsonb` (nullable), `profiles.style_completed_at timestamptz`.
+- `posts.depth_score int` (nullable), `posts.depth_gaps jsonb`.
+
+**Connector:** link Firecrawl via `standard_connectors--connect` (connector_id `firecrawl`).
+
+**New/edited files:**
+- `src/lib/style.functions.ts` — `getStyleProfile`, `saveStyleProfile` (takes raw answers + optional samples, calls Gemini to distill, stores).
+- `src/lib/depth.functions.ts` — `scoreDepth({ postId })` → runs AI scoring, persists.
+- `src/lib/research.functions.ts` — `getResearchForTurn({ postId })` → topic extract + Firecrawl search + relevance blurbs.
+- `src/lib/posts.functions.ts` — `generateBlogPost` reads `profiles.style_profile` and adds it to the system prompt.
+- `src/routes/_authenticated/post.$postId.tsx` — depth-check before `generate()` runs; research cards under latest assistant message; Firecrawl "Inspire me" chip.
+- `src/routes/_authenticated/style.tsx` — new onboarding/edit modal-page.
+- `src/routes/_authenticated/dashboard.tsx` — first-article completion → nudge card linking to `/style`; depth badge on post rows.
+- `src/lib/i18n.tsx` — new strings (AR/EN) for the modal, warning, research chip, style Qs.
+
+**Cost/perf notes:**
+- Depth score: 1 flash-lite call (~$0 in credits).
+- Research: throttled to every 2nd turn + on-demand; caches the last 3 result sets in memory.
+- Style distillation: one flash call per profile save.
+- Firecrawl: ~1 search per triggered turn; scopes to `formats: []` (metadata only, no scrape) to keep credits low.
+
+**Fallbacks:** if Firecrawl connector isn't linked, the "Inspire me" chip shows a friendly "Connect research to enable" tooltip and inline cards silently no-op. Depth scoring failure = no gate. Missing style profile = old prompt.
+
+---
+
+## Rollout order in one turn
+
+1. Link Firecrawl connector.
+2. DB migration.
+3. Server fns (style, depth, research) + prompt update.
+4. Style onboarding route + dashboard nudge.
+5. Interview UI: research cards + depth warning.
+6. i18n strings.
