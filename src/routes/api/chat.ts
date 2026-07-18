@@ -2,7 +2,7 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
-function buildSystem(uiLang: "ar" | "en") {
+function buildSystem(uiLang: "ar" | "en", styleSummary?: string) {
   const isAr = uiLang === "ar";
   const langLine = isAr
     ? "Default conversation language: Arabic. Conduct the entire interview in clear, natural Modern Standard Arabic unless the expert switches to English."
@@ -14,9 +14,12 @@ function buildSystem(uiLang: "ar" | "en") {
     ? 'If they want more, continue interviewing. If they confirm they are ready to generate, reply with EXACTLY this single line and nothing else: [[GENERATE]]'
     : 'If they want to add more, continue interviewing. If they confirm they are ready to generate, reply with EXACTLY this single line and nothing else: [[GENERATE]]';
 
+  const styleBlock = styleSummary
+    ? `\n\nWRITER_STYLE_GUIDE (the expert's own voice — mirror this in how you phrase questions and reflect their words back; the future article will be written in this voice):\n${styleSummary}\n`
+    : "";
   return `You are an editorial interviewer helping a domain expert turn their knowledge into a great long-form blog post.
 
-${langLine}
+${langLine}${styleBlock}
 
 Your job: ask thoughtful, focused questions ONE AT A TIME until you have enough to write a strong 700–1100 word article.
 
@@ -38,13 +41,13 @@ Rules:
 - Never write the article yourself. Your job is only the interview.`;
 }
 
-type ChatRequestBody = { messages?: unknown; language?: unknown };
+type ChatRequestBody = { messages?: unknown; language?: unknown; style?: unknown };
 
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { messages, language } = (await request.json()) as ChatRequestBody;
+        const { messages, language, style } = (await request.json()) as ChatRequestBody;
         if (!Array.isArray(messages)) {
           return new Response("Messages are required", { status: 400 });
         }
@@ -52,10 +55,12 @@ export const Route = createFileRoute("/api/chat")({
         if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
         const uiLang = language === "en" ? "en" : "ar";
+        const styleSummary =
+          typeof style === "string" && style.trim().length > 0 ? style.slice(0, 2000) : undefined;
         const gateway = createLovableAiGatewayProvider(key);
         const result = streamText({
           model: gateway("google/gemini-3-flash-preview"),
-          system: buildSystem(uiLang),
+          system: buildSystem(uiLang, styleSummary),
           messages: await convertToModelMessages(messages as UIMessage[]),
         });
 
