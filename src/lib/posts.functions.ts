@@ -118,14 +118,14 @@ const GEN_SYSTEM = `You are an accomplished editorial writer who turns expert in
 
 Rules:
 - Output ONLY the article in clean Markdown, no preamble, no commentary.
-- Language: write the entire article in the language the expert chose near the end of the interview (Arabic or English). If unclear, follow the DEFAULT_LANGUAGE noted in the prompt. Headings, body, and share blurb must all be in that one language.
+- Language: write the entire article in the language the expert chose near the end of the interview (Arabic or English). If unclear, follow the DEFAULT_LANGUAGE noted in the prompt. Headings and body must all be in that one language.
 - Length: honor the length the expert chose near the end of the interview. Map short → 250–400 words & 2–3 H2 sections; medium → 500–750 words & 3–4 H2; long → 900–1200 words & 4–6 H2. If the expert did not state a preference, default to short. The TARGET_LENGTH header (if present) overrides.
 - Start with a # Title that is specific and intriguing (not generic).
 - Open with a 1–2 sentence hook that grabs the reader.
 - Use ## H2 sections with concrete substance from the interview.
 - Include specific examples, stories, numbers, or analogies the expert mentioned.
 - Voice: confident, warm, first-person from the expert, no fluffy filler.
-- End with a brief conclusion + a one-line social share blurb prefixed exactly with: > **Share blurb:**
+- End with a brief conclusion. Do NOT include a "Share blurb" line or any meta commentary — output only the article itself.
 - Be concise — never pad to hit the upper bound of the chosen length.`;
 
 const LENGTH_RANGES: Record<"short" | "medium" | "long", { words: string; sections: string }> = {

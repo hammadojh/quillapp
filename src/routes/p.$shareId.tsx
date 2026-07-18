@@ -143,7 +143,9 @@ function PublicPostPage() {
         </div>
 
         <article className="prose-quill">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {post.content.replace(/\n?>\s*\*\*Share blurb:\*\*[\s\S]*?(?=\n{2,}|$)/gi, "").trimEnd()}
+          </ReactMarkdown>
         </article>
 
         <p className="mt-10 text-center text-xs text-ink/40 italic">
