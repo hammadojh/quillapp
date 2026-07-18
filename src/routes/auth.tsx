@@ -87,8 +87,8 @@ function AuthPage() {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-6 sm:px-10 sm:py-8">
-        <LangToggle />
         <Link to="/" className="font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">{t("brand")}</Link>
+        <LangToggle />
       </header>
       <main className="mx-auto flex max-w-md flex-col px-5 pt-6 text-center sm:pt-10">
         <span className="mb-4 text-[10px] uppercase tracking-[0.2em] text-brand/60 sm:text-xs">
