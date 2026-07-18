@@ -15,6 +15,7 @@ import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, P
 import { toast } from "sonner";
 import { useT, LangToggle, type Lang } from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
+import { StyleWizard } from "@/components/StyleWizard";
 
 export const Route = createFileRoute("/_authenticated/post/$postId")({
   head: () => ({ meta: [{ title: "Post — Quill" }] }),
@@ -387,6 +388,13 @@ function InterviewView({
   };
 
   const generate = async () => {
+    // Mandatory style gate: cannot publish without a defined style.
+    if (!styleRef.current) {
+      setStyleGateOpen(true);
+      setPendingGenerate(true);
+      toast.info(t("style.gate.required"));
+      return;
+    }
     setGenerating(true);
     setGenStage("writing");
     setWritingPhraseIdx(0);
