@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { getProfileByUsername, getMyProfile, updateMyProfile } from "@/lib/social.functions";
+import { getMyStyle } from "@/lib/style.functions";
+import { StyleWizard } from "@/components/StyleWizard";
+import { Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useT, LangToggle } from "@/lib/i18n";
 import { thumbUrl } from "@/lib/thumb-url";
@@ -57,7 +60,12 @@ function ProfilePage() {
             <p className="mt-1 text-sm text-ink/55">@{data.profile.username}</p>
             {data.profile.bio && <p className="mt-3 text-ink/80">{data.profile.bio}</p>}
           </div>
-          {isOwn && <EditButton initialFn={myFn} />}
+          {isOwn && (
+            <div className="flex shrink-0 flex-col gap-2">
+              <EditButton initialFn={myFn} />
+              <EditStyleButton />
+            </div>
+          )}
         </div>
 
         <h2 className="mt-12 font-serif text-xl">{t("profile.posts")}</h2>
