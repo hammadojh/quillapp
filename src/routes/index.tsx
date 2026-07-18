@@ -48,6 +48,7 @@ function Index() {
   return (
     <div className="min-h-screen bg-paper text-ink selection:bg-brand/10">
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-6 sm:px-10 sm:py-8">
+        <Link to="/" className="font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">{t("brand")}</Link>
         <div className="flex items-center gap-2">
           <LangToggle />
           <Link
@@ -57,7 +58,6 @@ function Index() {
             {authed ? t("dash.title") : t("nav.signin")}
           </Link>
         </div>
-        <Link to="/" className="font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">{t("brand")}</Link>
       </header>
 
       <main className="mx-auto flex w-full max-w-3xl flex-col items-center px-5 pb-24 pt-6 text-center sm:px-6 md:pt-16">
