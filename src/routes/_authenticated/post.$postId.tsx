@@ -475,6 +475,14 @@ function InterviewView({
 
   return (
     <div className="mx-auto flex h-[calc(100vh-65px)] max-w-3xl flex-col px-4 sm:px-6">
+      {styleGateOpen && (
+        <StyleWizard
+          mandatory
+          onClose={() => {
+            setStyleGateOpen(false);
+          }}
+        />
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 py-3 sm:py-4">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] uppercase tracking-widest text-ink/40 sm:text-xs">{t("post.interview.label")}</p>
