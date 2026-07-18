@@ -3,14 +3,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listPosts, createPost, deletePost } from "@/lib/posts.functions";
 import { getMyProfile } from "@/lib/social.functions";
+import { getMyStyle } from "@/lib/style.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, FileText, LogOut, Trash2, User } from "lucide-react";
+import { Plus, FileText, LogOut, Trash2, User, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useT, LangToggle } from "@/lib/i18n";
 import { ar as arLocale } from "date-fns/locale";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { thumbUrl } from "@/lib/thumb-url";
+import { StyleWizard } from "@/components/StyleWizard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Your posts — Quill" }] }),
@@ -26,6 +28,11 @@ function Dashboard() {
   const deleteFn = useServerFn(deletePost);
   const profileFn = useServerFn(getMyProfile);
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
+  const styleFn = useServerFn(getMyStyle);
+  const { data: style } = useQuery({ queryKey: ["my-style"], queryFn: () => styleFn() });
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [popupDismissed, setPopupDismissed] = useState(false);
+  const showPopup = !!style && !style.style_completed_at && !popupDismissed && !wizardOpen;
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["posts"],
@@ -79,6 +86,12 @@ function Dashboard() {
               <User className="h-4 w-4" /> <span className="hidden sm:inline">{t("profile.view")}</span>
             </Link>
           )}
+          <button
+            onClick={() => setWizardOpen(true)}
+            className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5"
+          >
+            <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.style")}</span>
+          </button>
           <LangToggle />
           <button onClick={signOut} className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5">
             <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.signout")}</span>
@@ -88,6 +101,31 @@ function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-5xl px-5 pb-24 pt-4 sm:px-10">
+        {showPopup && (
+          <div className="relative mb-8 flex flex-col gap-3 rounded-2xl border border-brand/15 bg-white/60 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div className="flex items-start gap-3 pe-8">
+              <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+              <div>
+                <div className="font-serif text-xl text-brand">{t("style.popup.title")}</div>
+                <p className="mt-1 text-sm text-ink/70">{t("style.popup.body")}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setWizardOpen(true)}
+              className="w-full shrink-0 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-paper hover:opacity-90 sm:w-auto"
+            >
+              {t("style.popup.cta")}
+            </button>
+            <button
+              onClick={() => setPopupDismissed(true)}
+              className="absolute end-3 top-3 rounded-full p-1.5 text-ink/40 hover:bg-ink/5 hover:text-ink"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         <span className="mb-4 block text-[10px] uppercase tracking-[0.2em] text-brand/60 sm:text-xs">
           {t("dash.title")}
         </span>
@@ -181,6 +219,7 @@ function Dashboard() {
           )}
         </div>
       </main>
+      {wizardOpen && <StyleWizard onClose={() => setWizardOpen(false)} />}
     </div>
   );
 }
