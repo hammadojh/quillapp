@@ -48,27 +48,25 @@ function PostPage() {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-ink/10">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <Link to="/dashboard" className="flex items-center gap-2 text-sm text-ink/70 hover:text-ink">
-            <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> <span className="truncate">{t("post.back")}</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <LangToggle />
-            <button
-              onClick={async () => {
-                if (!confirm(t("post.delete.confirm"))) return;
-                await deleteFn({ data: { id: postId } });
-                qc.invalidateQueries({ queryKey: ["posts"] });
-                navigate({ to: "/dashboard" });
-              }}
-              className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink/70 hover:bg-ink/5"
-              aria-label={t("post.delete")}
-            >
-              <Trash2 className="h-4 w-4" /> <span className="hidden sm:inline">{t("post.delete")}</span>
-            </button>
-          </div>
+      <header className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-5 py-5 sm:px-10 sm:py-6">
+        <div className="flex items-center gap-2">
+          <LangToggle />
+          <button
+            onClick={async () => {
+              if (!confirm(t("post.delete.confirm"))) return;
+              await deleteFn({ data: { id: postId } });
+              qc.invalidateQueries({ queryKey: ["posts"] });
+              navigate({ to: "/dashboard" });
+            }}
+            className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5"
+            aria-label={t("post.delete")}
+          >
+            <Trash2 className="h-4 w-4" /> <span className="hidden sm:inline">{t("post.delete")}</span>
+          </button>
         </div>
+        <Link to="/dashboard" className="flex items-center gap-2 font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> <span className="truncate">{t("brand")}</span>
+        </Link>
       </header>
 
       {post.status === "generated" && justGenerated ? (
