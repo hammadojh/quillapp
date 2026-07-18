@@ -76,6 +76,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-6 sm:px-10 sm:py-8">
+        <Link to="/dashboard" className="font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">{t("brand")}</Link>
         <div className="flex items-center gap-2">
           {profile?.username && (
             <Link
@@ -96,10 +97,9 @@ function Dashboard() {
           )}
           <LangToggle />
           <button onClick={signOut} className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5">
-            <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.signout")}</span>
+            <LogOut className="h-4 w-4 rtl:rotate-180" /> <span className="hidden sm:inline">{t("nav.signout")}</span>
           </button>
         </div>
-        <Link to="/dashboard" className="font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">{t("brand")}</Link>
       </header>
 
       <main className="mx-auto max-w-5xl px-5 pb-24 pt-4 sm:px-10">
