@@ -51,6 +51,9 @@ function PostPage() {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <header className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-5 py-5 sm:px-10 sm:py-6">
+        <Link to="/dashboard" className="flex items-center gap-2 font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> <span className="truncate">{t("brand")}</span>
+        </Link>
         <div className="flex items-center gap-2">
           <LangToggle />
           <button
@@ -66,9 +69,6 @@ function PostPage() {
             <Trash2 className="h-4 w-4" /> <span className="hidden sm:inline">{t("post.delete")}</span>
           </button>
         </div>
-        <Link to="/dashboard" className="flex items-center gap-2 font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">
-          <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> <span className="truncate">{t("brand")}</span>
-        </Link>
       </header>
 
       {post.status === "generated" && justGenerated ? (
