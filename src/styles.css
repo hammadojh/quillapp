@@ -26,8 +26,9 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Readex Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Amiri", "Fraunces", ui-serif, Georgia, serif;
+  --font-display: "Readex Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
   --color-paper: var(--paper);
   --color-ink: var(--ink);
   --color-brand: var(--accent-color);
