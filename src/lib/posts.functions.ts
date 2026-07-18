@@ -157,6 +157,14 @@ export const generateBlogPost = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!post) throw new Error("Post not found");
 
+    // Load the writer's style profile (if they completed the wizard) so the
+    // final article echoes their voice.
+    const { data: prof } = await (context.supabase.from("profiles") as any)
+      .select("style_profile")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    const styleSummary: string | undefined = prof?.style_profile?.summary;
+
     const transcript = (post.interview_messages as Array<{ role: string; parts?: Array<{ type: string; text?: string }> }> | null ?? [])
       .map((m) => {
         const text = (m.parts ?? [])
@@ -172,6 +180,7 @@ export const generateBlogPost = createServerFn({ method: "POST" })
     const header =
       `DEFAULT_LANGUAGE: ${defaultLang} (use this only if the expert never stated a preference in the interview)\n` +
       (lengthOverride ? `TARGET_LENGTH: ${lengthOverride.words}, ${lengthOverride.sections}.\n` : "") +
+      (styleSummary ? `\nWRITER_STYLE_GUIDE (mimic this voice closely — vocabulary, rhythm, structural habits):\n${styleSummary}\n` : "") +
       `\n`;
     const prompt = data.tweak
       ? `${header}Rewrite this existing blog post applying this feedback: "${data.tweak}". Keep the same language as the original unless the feedback explicitly requests a different one.\n\nORIGINAL POST:\n${post.content}\n\nORIGINAL INTERVIEW:\n${transcript}`

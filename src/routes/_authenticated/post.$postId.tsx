@@ -9,6 +9,7 @@ import remarkGfm from "remark-gfm";
 import { getPost, updatePost, generateBlogPost, deletePost, regenerateThumbnail } from "@/lib/posts.functions";
 import { thumbUrl } from "@/lib/thumb-url";
 import { setPostVisibility, setPostFeedInclusion } from "@/lib/social.functions";
+import { getMyStyle } from "@/lib/style.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, Pause, Share2, Linkedin, Twitter, Loader2, Globe, Lock, Link as LinkIcon, ExternalLink, Rss } from "lucide-react";
 import { toast } from "sonner";
@@ -115,11 +116,17 @@ function InterviewView({
   useEffect(() => {
     langRef.current = lang;
   }, [lang]);
+  const styleFn = useServerFn(getMyStyle);
+  const { data: myStyle } = useQuery({ queryKey: ["my-style"], queryFn: () => styleFn() });
+  const styleRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    styleRef.current = myStyle?.style_profile?.summary || undefined;
+  }, [myStyle]);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        body: () => ({ language: langRef.current }),
+        body: () => ({ language: langRef.current, style: styleRef.current }),
         fetch: async (input, init) => {
           const { data } = await supabase.auth.getSession();
           const headers = new Headers(init?.headers);
