@@ -250,6 +250,8 @@ const dicts: Record<Lang, Dict> = {
     "style.finish": "Save my style",
     "style.skip": "Skip for now",
     "style.saved": "Your style is saved.",
+    "style.required": "Required before your first article",
+    "style.gate.required": "Define your style before publishing your first article.",
     "style.popup.title": "Before you start writing",
     "style.popup.body": "Tune Quill to your own voice in about a minute. You can skip anytime.",
     "style.popup.cta": "Teach Quill my style",
