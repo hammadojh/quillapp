@@ -86,12 +86,14 @@ function Dashboard() {
               <User className="h-4 w-4" /> <span className="hidden sm:inline">{t("profile.view")}</span>
             </Link>
           )}
-          <button
-            onClick={() => setWizardOpen(true)}
-            className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5"
-          >
-            <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.style")}</span>
-          </button>
+          {!style?.style_profile && (
+            <button
+              onClick={() => setWizardOpen(true)}
+              className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5"
+            >
+              <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.style")}</span>
+            </button>
+          )}
           <LangToggle />
           <button onClick={signOut} className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5">
             <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.signout")}</span>
