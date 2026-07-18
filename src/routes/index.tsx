@@ -43,35 +43,42 @@ function Index() {
     navigate({ to: authed ? "/dashboard" : "/auth" });
   };
 
+  const fmtViews = (n: number) => (lang === "ar" ? n.toLocaleString("ar-EG") : n.toLocaleString("en-US"));
+
   return (
-    <div className="min-h-screen bg-paper text-ink">
-      <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-5 sm:px-6 sm:py-6">
-        <Link to="/" className="font-serif text-2xl font-semibold tracking-tight">{t("brand")}</Link>
+    <div className="min-h-screen bg-paper text-ink selection:bg-brand/10">
+      <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-6 sm:px-10 sm:py-8">
         <div className="flex items-center gap-2">
           <LangToggle />
           <Link
             to={authed ? "/dashboard" : "/auth"}
-            className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:opacity-90 sm:px-5"
+            className="rounded-full bg-brand px-4 py-1.5 text-xs font-medium text-paper shadow-sm transition hover:opacity-90 sm:px-5"
           >
             {authed ? t("dash.title") : t("nav.signin")}
           </Link>
         </div>
+        <Link to="/" className="font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">{t("brand")}</Link>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 pb-20 pt-8 sm:px-6 md:pt-16">
-        <p className="mb-4 text-xs uppercase tracking-[0.2em] text-ink/60 sm:text-sm">{t("landing.tag")}</p>
-        <h1 className="font-serif text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
-          {t("landing.title.1")}<br />
-          <span className="italic text-brand">{t("landing.title.2")}</span>
+      <main className="mx-auto flex w-full max-w-3xl flex-col items-center px-5 pb-24 pt-6 text-center sm:px-6 md:pt-16">
+        <span className="mb-5 text-[10px] uppercase tracking-[0.2em] text-brand/60 sm:mb-6 sm:text-xs">
+          {t("landing.tag")}
+        </span>
+
+        <h1 className="font-serif text-5xl font-bold leading-[1.1] tracking-tight text-brand sm:text-6xl md:text-7xl">
+          {t("landing.title.1")}{" "}
+          <span className="italic underline decoration-1 underline-offset-8">{t("landing.title.2").replace(/[.。．]$/, "")}</span>
+          <span className="not-italic">.</span>
         </h1>
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-ink/75 sm:text-lg">
+
+        <p className="mt-7 max-w-2xl text-base leading-relaxed text-brand/80 sm:text-lg md:text-xl">
           {t("landing.subtitle")}
         </p>
 
-        {/* Hero textbox */}
+        {/* Hero input */}
         <form
           onSubmit={(e) => { e.preventDefault(); start(); }}
-          className="mt-7 rounded-2xl border border-ink/15 bg-white p-2 shadow-sm focus-within:border-brand/60 focus-within:shadow-md"
+          className="mt-10 w-full rounded-2xl border border-brand/20 bg-white/40 p-5 shadow-[0_20px_50px_rgba(43,77,111,0.05)] backdrop-blur-sm transition hover:border-brand/40 sm:p-7"
         >
           <textarea
             ref={inputRef}
@@ -81,67 +88,93 @@ function Index() {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); start(); }
             }}
             placeholder={t("landing.hero.placeholder")}
-            rows={2}
-            className="w-full resize-none rounded-xl bg-transparent px-3 py-3 text-base text-ink placeholder-ink/40 focus:outline-none sm:text-lg"
+            rows={3}
+            className="min-h-[120px] w-full resize-none bg-transparent text-lg leading-relaxed text-brand placeholder:text-brand/30 focus:outline-none sm:text-xl"
           />
-          <div className="flex items-center justify-between gap-2 px-1 pb-1 pt-1">
-            <span className="text-xs text-ink/40">{lang === "ar" ? "اضغط Enter للبدء" : "Press Enter to start"}</span>
+          <div className="mt-3 flex flex-col items-center justify-between gap-3 sm:mt-4 sm:flex-row-reverse">
             <button
               type="submit"
-              className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:opacity-90"
+              className="group flex w-full items-center justify-center gap-3 rounded-full bg-brand px-7 py-3 text-sm font-medium text-paper transition hover:bg-brand/90 sm:w-auto sm:px-8"
             >
-              {t("landing.hero.start")} <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+              {t("landing.hero.start")}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:-translate-x-0.5 rtl:rotate-180 rtl:group-hover:translate-x-0.5" />
             </button>
+            <span className="text-xs text-brand/40">
+              {lang === "ar" ? "اضغط Enter للبدء" : "Press Enter to start"}
+            </span>
           </div>
         </form>
 
-        <p className="mt-3 text-xs text-ink/50">
+        <p className="mt-5 text-[11px] text-brand/40 sm:text-xs">
           {lang === "ar"
             ? "مجاني — تحتاج إلى حساب فقط عند الحفظ أو المشاركة."
             : "Free to try — you only need an account to save or share."}
         </p>
+      </main>
 
-        {/* Sample posts */}
-        <section className="mt-16 sm:mt-20">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <h2 className="font-serif text-2xl tracking-tight sm:text-3xl">{t("landing.samples.title")}</h2>
-              <p className="mt-1 text-sm text-ink/60">{t("landing.samples.sub")}</p>
-            </div>
-          </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(samples ?? []).map((p) => (
-              <Link
-                key={p.id}
-                to="/p/$shareId"
-                params={{ shareId: p.share_id ?? "" }}
-                className="group flex flex-col overflow-hidden rounded-xl border border-ink/10 bg-white transition hover:border-ink/30 hover:shadow-sm"
-              >
+      {/* Divider */}
+      <div className="mx-auto mt-8 w-full max-w-6xl px-5 sm:mt-16 sm:px-10">
+        <div className="relative border-t border-brand/10">
+          <span className="absolute left-1/2 -top-2.5 -translate-x-1/2 bg-paper px-4 text-[10px] uppercase tracking-[0.25em] text-brand/40 sm:text-xs">
+            {lang === "ar" ? "مختارات من الجريدة" : "Selected reading"}
+          </span>
+        </div>
+      </div>
+
+      {/* Samples */}
+      <section className="mx-auto w-full max-w-6xl px-5 pb-24 pt-16 sm:px-10">
+        <div className="mb-10 flex flex-col items-baseline justify-between gap-3 sm:mb-12 md:flex-row">
+          <h2 className="font-serif text-3xl font-bold tracking-tight text-brand sm:text-4xl">
+            {t("landing.samples.title")}
+          </h2>
+          <p className="text-sm text-brand/50">{t("landing.samples.sub")}</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-12 lg:grid-cols-3">
+          {(samples ?? []).map((p) => (
+            <Link
+              key={p.id}
+              to="/p/$shareId"
+              params={{ shareId: p.share_id ?? "" }}
+              className="group flex flex-col"
+            >
+              <div className="relative mb-5 aspect-[4/3] w-full overflow-hidden rounded-sm bg-[#e8e4db] sm:mb-6">
                 <img
                   src={thumbUrl(p.id, (p as any).thumbnail_url ?? p.updated_at)}
                   alt=""
                   loading="lazy"
-                  className="aspect-[1200/630] w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover opacity-90 mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
                 />
-                <div className="flex flex-1 flex-col p-5">
-                <h3 className="font-serif text-lg leading-snug text-ink group-hover:text-brand sm:text-xl">
-                  {p.title}
-                </h3>
-                <p className="mt-2 line-clamp-3 text-sm text-ink/65">{p.content}</p>
-                <div className="mt-4 flex items-center justify-between text-xs text-ink/50">
-                  <span className="truncate">
-                    {t("landing.samples.by")}{" "}
-                    <span className="text-ink/80">{p.author?.display_name || p.author?.username || "—"}</span>
-                  </span>
-                  <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5" /> {(p as any).views_count ?? 0}</span>
-                </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+                <div className="absolute inset-0 bg-brand/5 transition-colors group-hover:bg-transparent" />
+              </div>
+              <h3 className="mb-3 font-serif text-xl font-bold leading-snug text-brand transition-colors group-hover:text-brand/70 sm:text-2xl">
+                {p.title}
+              </h3>
+              <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-brand/70">
+                {p.content}
+              </p>
+              <div className="mt-auto flex items-center justify-between border-t border-brand/10 pt-4 text-[10px] font-semibold uppercase tracking-wider text-brand/50">
+                <span className="truncate">
+                  {p.author?.display_name || p.author?.username || "—"}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Eye className="h-3 w-3" />
+                  {fmtViews((p as any).views_count ?? 0)}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-        <section id="how" className="mt-20 grid gap-10 sm:mt-24 md:grid-cols-3">
+      {/* How it works — kept, refined */}
+      <section id="how" className="mx-auto w-full max-w-6xl px-5 pb-20 sm:px-10">
+        <div className="relative mb-12 border-t border-brand/10">
+          <span className="absolute left-1/2 -top-2.5 -translate-x-1/2 bg-paper px-4 text-[10px] uppercase tracking-[0.25em] text-brand/40 sm:text-xs">
+            {lang === "ar" ? "كيف يعمل" : "How it works"}
+          </span>
+        </div>
+        <div className="grid gap-10 md:grid-cols-3">
           {[
             { icon: PenLine, title: t("landing.step1.title"), body: t("landing.step1.body") },
             { icon: Sparkle, title: t("landing.step2.title"), body: t("landing.step2.body") },
@@ -149,15 +182,15 @@ function Index() {
           ].map(({ icon: Icon, title, body }) => (
             <div key={title}>
               <Icon className="h-6 w-6 text-brand" strokeWidth={1.5} />
-              <h3 className="mt-4 font-serif text-2xl">{title}</h3>
-              <p className="mt-2 text-ink/70">{body}</p>
+              <h3 className="mt-4 font-serif text-2xl text-brand">{title}</h3>
+              <p className="mt-2 text-brand/70">{body}</p>
             </div>
           ))}
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <footer className="border-t border-ink/10">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-ink/60 sm:px-6">
+      <footer className="border-t border-brand/10">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-6 text-sm text-brand/60 sm:px-10">
           <span>© {t("brand")}</span>
           <span className="font-serif italic">{t("landing.footer.tag")}</span>
         </div>
