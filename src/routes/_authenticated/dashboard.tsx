@@ -68,47 +68,54 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="border-b border-ink/10">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
-          <Link to="/dashboard" className="font-serif text-2xl font-semibold tracking-tight">{t("brand")}</Link>
-          <div className="flex items-center gap-2">
-            {profile?.username && (
-              <Link
-                to="/u/$username"
-                params={{ username: profile.username }}
-                className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink/70 hover:bg-ink/5"
-              >
-                <User className="h-4 w-4" /> <span className="hidden sm:inline">{t("profile.view")}</span>
-              </Link>
-            )}
-            <LangToggle />
-            <button onClick={signOut} className="flex items-center gap-2 rounded-full border border-ink/20 px-3 py-1.5 text-xs font-medium text-ink/70 hover:bg-ink/5">
-              <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.signout")}</span>
-            </button>
-          </div>
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-6 sm:px-10 sm:py-8">
+        <div className="flex items-center gap-2">
+          {profile?.username && (
+            <Link
+              to="/u/$username"
+              params={{ username: profile.username }}
+              className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5"
+            >
+              <User className="h-4 w-4" /> <span className="hidden sm:inline">{t("profile.view")}</span>
+            </Link>
+          )}
+          <LangToggle />
+          <button onClick={signOut} className="flex items-center gap-2 rounded-full border border-brand/20 px-3 py-1.5 text-xs font-medium text-brand/70 hover:bg-brand/5">
+            <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">{t("nav.signout")}</span>
+          </button>
         </div>
+        <Link to="/dashboard" className="font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">{t("brand")}</Link>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+      <main className="mx-auto max-w-5xl px-5 pb-24 pt-4 sm:px-10">
+        <span className="mb-4 block text-[10px] uppercase tracking-[0.2em] text-brand/60 sm:text-xs">
+          {t("dash.title")}
+        </span>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <h1 className="font-serif text-3xl tracking-tight sm:text-4xl">{t("dash.title")}</h1>
-            <p className="mt-2 text-ink/60">{t("dash.subtitle")}</p>
+            <h1 className="font-serif text-4xl font-bold leading-[1.1] tracking-tight text-brand sm:text-5xl">{t("dash.title")}</h1>
+            <p className="mt-3 text-brand/70">{t("dash.subtitle")}</p>
           </div>
           <button
             onClick={() => create.mutate()}
             disabled={create.isPending}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-paper transition hover:opacity-90 disabled:opacity-50 sm:w-auto"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-medium text-paper transition hover:opacity-90 disabled:opacity-50 sm:w-auto"
           >
             <Plus className="h-4 w-4" /> {t("dash.new")}
           </button>
         </div>
 
+        <div className="relative mt-12 border-t border-brand/10">
+          <span className="absolute left-1/2 -top-2.5 -translate-x-1/2 bg-paper px-4 text-[10px] uppercase tracking-[0.25em] text-brand/40 sm:text-xs">
+            {t("brand")}
+          </span>
+        </div>
+
         <div className="mt-10">
           {isLoading ? (
-            <p className="text-ink/50">Loading…</p>
+            <p className="text-brand/50">Loading…</p>
           ) : posts && posts.length > 0 ? (
-            <ul className="divide-y divide-ink/10 border-y border-ink/10">
+            <ul className="divide-y divide-brand/10 border-b border-brand/10">
               {posts.map((p) => (
                 <li key={p.id} className="group flex items-center justify-between gap-3 py-5">
                   <Link

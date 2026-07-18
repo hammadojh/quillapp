@@ -86,15 +86,18 @@ function AuthPage() {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-5 sm:px-6 sm:py-6">
-        <Link to="/" className="font-serif text-2xl font-semibold tracking-tight">{t("brand")}</Link>
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-6 sm:px-10 sm:py-8">
         <LangToggle />
+        <Link to="/" className="font-serif text-2xl font-bold tracking-tight text-brand sm:text-3xl">{t("brand")}</Link>
       </header>
-      <main className="mx-auto flex max-w-md flex-col px-4 pt-8 sm:px-6 sm:pt-10">
-        <h1 className="font-serif text-3xl tracking-tight sm:text-4xl">
+      <main className="mx-auto flex max-w-md flex-col px-5 pt-6 text-center sm:pt-10">
+        <span className="mb-4 text-[10px] uppercase tracking-[0.2em] text-brand/60 sm:text-xs">
+          {mode === "signin" ? t("auth.signin") : t("auth.create")}
+        </span>
+        <h1 className="font-serif text-4xl font-bold leading-[1.1] tracking-tight text-brand sm:text-5xl">
           {mode === "signin" ? t("auth.welcome.signin") : t("auth.welcome.signup")}
         </h1>
-        <p className="mt-3 text-ink/70">
+        <p className="mt-4 text-brand/70">
           {mode === "signin" ? t("auth.sub.signin") : t("auth.sub.signup")}
         </p>
 
