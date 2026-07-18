@@ -395,6 +395,8 @@ const dicts: Record<Lang, Dict> = {
     "profile.posts": "Posts",
     "profile.noposts": "No public posts yet.",
     "profile.edit": "Edit profile",
+    "profile.style.edit": "Edit your style",
+    "profile.style.set": "Set up your style",
     "profile.save": "Save",
     "profile.username": "Username",
     "profile.display": "Display name",
