@@ -51,6 +51,8 @@ const dicts: Record<Lang, Dict> = {
     "style.finish": "احفظ أسلوبي",
     "style.skip": "تخطّي الآن",
     "style.saved": "حُفظ أسلوبك.",
+    "style.required": "مطلوب قبل نشر أول مقال",
+    "style.gate.required": "قبل نشر أول مقال، عرّف أسلوبك.",
     "style.popup.title": "قبل أن تبدأ الكتابة",
     "style.popup.body": "خصّص كويل بأسلوبك خلال دقيقة. يمكنك تخطّي هذا في أي وقت.",
     "style.popup.cta": "علّم كويل أسلوبي",
