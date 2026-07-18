@@ -798,8 +798,11 @@ function GeneratedView({
     }
   };
 
-  // strip the leading "# Title" since we render title separately
-  const body = content.replace(/^#\s+.+\n+/, "");
+  // strip the leading "# Title" since we render title separately, and any legacy "Share blurb" line
+  const body = content
+    .replace(/^#\s+.+\n+/, "")
+    .replace(/\n?>\s*\*\*Share blurb:\*\*[\s\S]*?(?=\n{2,}|$)/gi, "")
+    .trimEnd();
 
   // Build a punchy social blurb from the first non-heading paragraph.
   const blurb = useMemo(() => {
