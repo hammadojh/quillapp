@@ -16,7 +16,7 @@ type Answers = {
   formality: "casual" | "balanced" | "formal" | "";
 };
 
-export function StyleWizard({ onClose }: { onClose: () => void }) {
+export function StyleWizard({ onClose, mandatory = false }: { onClose: () => void; mandatory?: boolean }) {
   const { t, lang, dir } = useT();
   const qc = useQueryClient();
   const saveFn = useServerFn(saveMyStyle);
@@ -143,16 +143,21 @@ export function StyleWizard({ onClose }: { onClose: () => void }) {
     <div
       dir={dir}
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && dismiss.mutate()}
+      onClick={(e) => {
+        if (mandatory) return;
+        if (e.target === e.currentTarget) dismiss.mutate();
+      }}
     >
       <div className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-ink/10 bg-paper shadow-2xl">
-        <button
-          onClick={() => dismiss.mutate()}
-          className="absolute end-4 top-4 rounded-full p-2 text-ink/50 transition hover:bg-ink/5 hover:text-ink"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {!mandatory && (
+          <button
+            onClick={() => dismiss.mutate()}
+            className="absolute end-4 top-4 rounded-full p-2 text-ink/50 transition hover:bg-ink/5 hover:text-ink"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
 
         <div className="px-6 pt-8 sm:px-10">
           <span className="text-[10px] uppercase tracking-[0.25em] text-brand/60">
@@ -334,12 +339,16 @@ export function StyleWizard({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-ink/10 bg-white/30 px-6 py-4 sm:px-10">
-          <button
-            onClick={() => dismiss.mutate()}
-            className="text-xs text-ink/50 underline-offset-4 hover:text-ink hover:underline"
-          >
-            {t("style.skip")}
-          </button>
+          {mandatory ? (
+            <span className="text-xs text-ink/60">{t("style.required")}</span>
+          ) : (
+            <button
+              onClick={() => dismiss.mutate()}
+              className="text-xs text-ink/50 underline-offset-4 hover:text-ink hover:underline"
+            >
+              {t("style.skip")}
+            </button>
+          )}
           <div className="flex items-center gap-2">
             {step > 0 && (
               <button

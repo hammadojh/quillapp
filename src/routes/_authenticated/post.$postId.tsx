@@ -15,6 +15,7 @@ import { ArrowLeft, Copy, RefreshCw, Trash2, Send, Mic, Square, Volume2, Play, P
 import { toast } from "sonner";
 import { useT, LangToggle, type Lang } from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
+import { StyleWizard } from "@/components/StyleWizard";
 
 export const Route = createFileRoute("/_authenticated/post/$postId")({
   head: () => ({ meta: [{ title: "Post — Quill" }] }),
@@ -122,6 +123,16 @@ function InterviewView({
   useEffect(() => {
     styleRef.current = myStyle?.style_profile?.summary || undefined;
   }, [myStyle]);
+  const [styleGateOpen, setStyleGateOpen] = useState(false);
+  const [pendingGenerate, setPendingGenerate] = useState(false);
+  useEffect(() => {
+    if (!pendingGenerate) return;
+    if (styleGateOpen) return;
+    if (!styleRef.current) return;
+    setPendingGenerate(false);
+    generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingGenerate, styleGateOpen, myStyle]);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
@@ -387,6 +398,13 @@ function InterviewView({
   };
 
   const generate = async () => {
+    // Mandatory style gate: cannot publish without a defined style.
+    if (!styleRef.current) {
+      setStyleGateOpen(true);
+      setPendingGenerate(true);
+      toast.info(t("style.gate.required"));
+      return;
+    }
     setGenerating(true);
     setGenStage("writing");
     setWritingPhraseIdx(0);
@@ -465,6 +483,14 @@ function InterviewView({
 
   return (
     <div className="mx-auto flex h-[calc(100vh-65px)] max-w-3xl flex-col px-4 sm:px-6">
+      {styleGateOpen && (
+        <StyleWizard
+          mandatory
+          onClose={() => {
+            setStyleGateOpen(false);
+          }}
+        />
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 py-3 sm:py-4">
         <div className="min-w-0 flex-1">
           <p className="text-[10px] uppercase tracking-widest text-ink/40 sm:text-xs">{t("post.interview.label")}</p>
