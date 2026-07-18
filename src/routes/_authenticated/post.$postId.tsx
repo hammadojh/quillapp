@@ -123,6 +123,8 @@ function InterviewView({
   useEffect(() => {
     styleRef.current = myStyle?.style_profile?.summary || undefined;
   }, [myStyle]);
+  const [styleGateOpen, setStyleGateOpen] = useState(false);
+  const [pendingGenerate, setPendingGenerate] = useState(false);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
