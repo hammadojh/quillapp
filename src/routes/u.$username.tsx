@@ -197,3 +197,23 @@ function EditButton({ initialFn }: { initialFn: any }) {
     </>
   );
 }
+
+function EditStyleButton() {
+  const { t } = useT();
+  const styleFn = useServerFn(getMyStyle);
+  const { data } = useQuery({ queryKey: ["my-style"], queryFn: () => styleFn() });
+  const [open, setOpen] = useState(false);
+  const hasStyle = !!data?.style_profile;
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex shrink-0 items-center gap-2 rounded-full border border-ink/20 px-3 py-2 text-xs hover:bg-ink/5"
+      >
+        <Sparkles className="h-3.5 w-3.5" />
+        {hasStyle ? t("profile.style.edit") : t("profile.style.set")}
+      </button>
+      {open && <StyleWizard onClose={() => setOpen(false)} />}
+    </>
+  );
+}
