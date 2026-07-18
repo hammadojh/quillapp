@@ -4,14 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listPosts, createPost, deletePost } from "@/lib/posts.functions";
 import { getMyProfile } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, FileText, LogOut, Trash2, User, Sparkles } from "lucide-react";
+import { Plus, FileText, LogOut, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useT, LangToggle } from "@/lib/i18n";
 import { ar as arLocale } from "date-fns/locale";
 import { useEffect, useRef } from "react";
 import { thumbUrl } from "@/lib/thumb-url";
-import { getStyleProfile } from "@/lib/style.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Your posts — Quill" }] }),
@@ -27,8 +26,6 @@ function Dashboard() {
   const deleteFn = useServerFn(deletePost);
   const profileFn = useServerFn(getMyProfile);
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: () => profileFn() });
-  const styleFn = useServerFn(getStyleProfile);
-  const { data: style } = useQuery({ queryKey: ["style"], queryFn: () => styleFn() });
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["posts"],
@@ -108,25 +105,6 @@ function Dashboard() {
         </div>
 
         <div className="mt-10">
-          {posts && posts.some((p) => p.status === "generated") && !style?.profile && (
-            <Link
-              to="/style"
-              className="mb-6 flex items-start gap-3 rounded-xl border border-brand/30 bg-brand/5 p-4 text-sm text-ink hover:bg-brand/10"
-            >
-              <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
-              <div>
-                <div className="font-medium">{t("style.nudge.title")}</div>
-                <div className="text-ink/60">{t("style.nudge.body")}</div>
-              </div>
-            </Link>
-          )}
-          {style?.profile && (
-            <div className="mb-6 flex items-center justify-end">
-              <Link to="/style" className="text-xs text-ink/60 hover:text-ink underline underline-offset-4">
-                {t("style.edit")}
-              </Link>
-            </div>
-          )}
           {isLoading ? (
             <p className="text-ink/50">Loading…</p>
           ) : posts && posts.length > 0 ? (
