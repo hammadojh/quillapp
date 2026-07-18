@@ -125,6 +125,14 @@ function InterviewView({
   }, [myStyle]);
   const [styleGateOpen, setStyleGateOpen] = useState(false);
   const [pendingGenerate, setPendingGenerate] = useState(false);
+  useEffect(() => {
+    if (!pendingGenerate) return;
+    if (styleGateOpen) return;
+    if (!styleRef.current) return;
+    setPendingGenerate(false);
+    generate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingGenerate, styleGateOpen, myStyle]);
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
