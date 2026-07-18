@@ -194,6 +194,8 @@ const dicts: Record<Lang, Dict> = {
     "profile.posts": "المقالات",
     "profile.noposts": "لا توجد مقالات عامة بعد.",
     "profile.edit": "تعديل الملف",
+    "profile.style.edit": "تعديل أسلوبك",
+    "profile.style.set": "إعداد أسلوبك",
     "profile.save": "حفظ",
     "profile.username": "اسم المستخدم",
     "profile.display": "الاسم المعروض",
