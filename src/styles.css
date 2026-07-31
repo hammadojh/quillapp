@@ -190,6 +190,10 @@
     font-family: var(--font-sans);
   }
 
+  input, textarea, select, button {
+    font-family: inherit;
+  }
+
   html[dir="rtl"] body {
     font-family: var(--font-sans);
   }
