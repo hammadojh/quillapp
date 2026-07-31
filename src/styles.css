@@ -4,6 +4,43 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Thmanyah Serif Display — editorial Arabic/Latin display face */
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/8eecc50c-e466-496e-8db5-fe70957d90be/thmanyahserifdisplay-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/ba59b096-3fd7-4376-9852-5f8187c9e5e8/thmanyahserifdisplay-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/db6370ed-4ed8-436a-bea1-71f9d7c7589b/thmanyahserifdisplay-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/22bcb631-cad8-4fde-9d72-0b2d33e5b718/thmanyahserifdisplay-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/16c1d236-bb2b-45f2-b06c-246fad9fbea3/thmanyahserifdisplay-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /*
  * Design system definition.
  *
