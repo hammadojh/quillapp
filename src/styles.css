@@ -4,6 +4,43 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Thmanyah Serif Display — editorial Arabic/Latin display face */
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/8eecc50c-e466-496e-8db5-fe70957d90be/thmanyahserifdisplay-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/ba59b096-3fd7-4376-9852-5f8187c9e5e8/thmanyahserifdisplay-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/db6370ed-4ed8-436a-bea1-71f9d7c7589b/thmanyahserifdisplay-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/22bcb631-cad8-4fde-9d72-0b2d33e5b718/thmanyahserifdisplay-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Thmanyah Serif Display";
+  src: url("/__l5e/assets-v1/16c1d236-bb2b-45f2-b06c-246fad9fbea3/thmanyahserifdisplay-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /*
  * Design system definition.
  *
@@ -27,8 +64,8 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
   --font-sans: "Readex Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Amiri", "Fraunces", ui-serif, Georgia, serif;
-  --font-display: "Readex Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Thmanyah Serif Display", "Amiri", "Fraunces", ui-serif, Georgia, serif;
+  --font-display: "Thmanyah Serif Display", "Readex Pro", "Inter", ui-sans-serif, system-ui, sans-serif;
   --color-paper: var(--paper);
   --color-ink: var(--ink);
   --color-brand: var(--accent-color);
@@ -156,14 +193,21 @@
   html[dir="rtl"] body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Tahoma", "Arial", sans-serif;
   }
-  html[dir="rtl"] .font-serif {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Tahoma", "Arial", sans-serif;
+  html[dir="rtl"] .font-serif,
+  html[dir="rtl"] .font-display {
+    font-family: "Thmanyah Serif Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Tahoma", "Arial", sans-serif;
     letter-spacing: 0;
+    line-height: 1.35;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
   }
 }
 
 @utility prose-quill {
-  & h1, & h2, & h3 { font-family: var(--font-serif); color: var(--ink); letter-spacing: -0.01em; line-height: 1.15; }
+  & h1, & h2, & h3 { font-family: var(--font-serif); color: var(--ink); letter-spacing: -0.01em; line-height: 1.25; font-weight: 700; }
   & h1 { font-size: 2.25rem; margin-top: 0.5rem; margin-bottom: 1.25rem; font-weight: 600; }
   @media (min-width: 640px) { & h1 { font-size: 2.75rem; } }
   & h2 { font-size: 1.75rem; margin-top: 2.25rem; margin-bottom: 0.75rem; }
