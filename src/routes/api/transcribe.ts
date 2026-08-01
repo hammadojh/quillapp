@@ -15,7 +15,20 @@ export const Route = createFileRoute("/api/transcribe")({
 
         const upstream = new FormData();
         upstream.append("model", "openai/gpt-4o-mini-transcribe");
-        const ext = file.type.includes("wav") ? "wav" : file.type.includes("mp4") ? "mp4" : "webm";
+        const nameExt = (file.name.split(".").pop() ?? "").toLowerCase();
+        const allowed = ["wav", "mp3", "m4a", "mp4", "webm", "ogg", "flac", "mpeg", "mpga"];
+        const typeExt = file.type.includes("wav")
+          ? "wav"
+          : file.type.includes("mpeg") || file.type.includes("mp3")
+            ? "mp3"
+            : file.type.includes("m4a") || file.type.includes("aac") || file.type.includes("mp4")
+              ? "m4a"
+              : file.type.includes("ogg")
+                ? "ogg"
+                : file.type.includes("flac")
+                  ? "flac"
+                  : "webm";
+        const ext = allowed.includes(nameExt) ? nameExt : typeExt;
         upstream.append("file", file, `recording.${ext}`);
 
         const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
