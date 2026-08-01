@@ -213,7 +213,7 @@ function Index() {
                 ref={fileRef}
                 type="file"
                 multiple
-                accept="audio/*,.txt,.md,.markdown,.csv,.json"
+                accept="audio/*,video/mp4,.m4a,.mp3,.wav,.aac,.caf,.aiff,.aif,.mp4,.mov,.webm,.ogg,.flac,.txt,.md,.markdown,.csv,.json"
                 className="hidden"
                 onChange={(e) => void onFiles(e.target.files)}
               />
