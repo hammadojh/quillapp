@@ -175,7 +175,14 @@ function Index() {
               ))}
             </div>
           )}
-          <div className="mt-3 flex flex-row-reverse items-center justify-between gap-3 sm:mt-4">
+          <div className="mt-3 flex flex-row items-center justify-between gap-3 rtl:flex-row-reverse sm:mt-4">
+            <button
+              type="submit"
+              aria-label={lang === "ar" ? "ابدأ المقابلة" : "Start interview"}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-paper shadow-sm transition hover:opacity-90"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+            </button>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -221,13 +228,6 @@ function Index() {
                     : lang === "ar" ? "تحدّث أو أرفق ملفاً" : "Speak or attach a file"}
               </span>
             </div>
-            <button
-              type="submit"
-              aria-label={lang === "ar" ? "ابدأ المقابلة" : "Start interview"}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-paper shadow-sm transition hover:opacity-90"
-            >
-              <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-            </button>
           </div>
         </form>
 
