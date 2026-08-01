@@ -176,13 +176,6 @@ function Index() {
             </div>
           )}
           <div className="mt-3 flex flex-col items-center justify-between gap-3 sm:mt-4 sm:flex-row-reverse">
-            <button
-              type="submit"
-              className="group flex w-full items-center justify-center gap-3 rounded-full bg-brand px-7 py-3 text-sm font-medium text-paper transition hover:bg-brand/90 sm:w-auto sm:px-8"
-            >
-              {t("landing.hero.start")}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:-translate-x-0.5 rtl:rotate-180 rtl:group-hover:translate-x-0.5" />
-            </button>
             <div className="flex w-full items-center gap-2 sm:w-auto">
               <button
                 type="button"
@@ -228,6 +221,13 @@ function Index() {
                     : lang === "ar" ? "تحدّث أو أرفق ملفاً" : "Speak or attach a file"}
               </span>
             </div>
+            <button
+              type="submit"
+              aria-label={lang === "ar" ? "ابدأ المقابلة" : "Start interview"}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-paper shadow-sm transition hover:opacity-90"
+            >
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+            </button>
           </div>
         </form>
 
