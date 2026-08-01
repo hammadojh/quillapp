@@ -87,7 +87,10 @@ function Index() {
     setBusy(true);
     try {
       for (const file of Array.from(files)) {
-        const isAudio = file.type.startsWith("audio/") || /\.(wav|mp3|m4a|webm|mp4)$/i.test(file.name);
+        const isAudio =
+          file.type.startsWith("audio/") ||
+          file.type === "video/mp4" ||
+          /\.(wav|mp3|m4a|aac|caf|aiff|aif|webm|mp4|mov|ogg|flac|mpga|mpeg)$/i.test(file.name);
         const isText = file.type.startsWith("text/") || /\.(txt|md|markdown|csv|json)$/i.test(file.name);
         if (isAudio) {
           appendText(await transcribeBlob(file, file.name));
