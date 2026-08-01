@@ -175,8 +175,8 @@ function Index() {
               ))}
             </div>
           )}
-          <div className="mt-3 flex flex-col items-center justify-between gap-3 sm:mt-4 sm:flex-row-reverse">
-            <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="mt-3 flex flex-row-reverse items-center justify-between gap-3 sm:mt-4">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={toggleRecording}
@@ -213,7 +213,7 @@ function Index() {
                 className="hidden"
                 onChange={(e) => void onFiles(e.target.files)}
               />
-              <span className="text-xs text-brand/40">
+              <span className="hidden text-xs text-brand/40 sm:inline">
                 {recording
                   ? lang === "ar" ? "جارٍ التسجيل…" : "Recording…"
                   : busy
