@@ -3,7 +3,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { PenLine, Sparkle, Share2, ArrowRight, Eye } from "lucide-react";
+import { PenLine, Sparkle, Share2, ArrowRight, Eye, Mic, Square, Paperclip, Loader2, X } from "lucide-react";
+import { toast } from "sonner";
+import { startWavRecording, transcribeBlob, type WavRecorder } from "@/lib/wav-recorder";
 import { useT, LangToggle } from "@/lib/i18n";
 import { listLandingPosts } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +29,11 @@ function Index() {
   const [topic, setTopic] = useState("");
   const [authed, setAuthed] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const recorderRef = useRef<WavRecorder | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [attachments, setAttachments] = useState<string[]>([]);
   const listFn = useServerFn(listLandingPosts);
   const { data: samples } = useQuery({ queryKey: ["landing-posts"], queryFn: () => listFn() });
 
@@ -41,6 +48,67 @@ function Index() {
       try { sessionStorage.setItem("quill.pendingTopic", clean); } catch {}
     }
     navigate({ to: authed ? "/dashboard" : "/auth" });
+  };
+
+  const appendText = (text: string) => {
+    const clean = text.trim();
+    if (!clean) return;
+    setTopic((prev) => (prev.trim() ? `${prev.trim()}\n\n${clean}` : clean));
+  };
+
+  const toggleRecording = async () => {
+    if (recording) {
+      const rec = recorderRef.current;
+      recorderRef.current = null;
+      setRecording(false);
+      if (!rec) return;
+      setBusy(true);
+      try {
+        const blob = await rec.stop();
+        if (blob.size < 2048) throw new Error(lang === "ar" ? "التسجيل فارغ، حاول مرة أخرى." : "That recording was empty — try again.");
+        appendText(await transcribeBlob(blob));
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Recording failed");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    try {
+      recorderRef.current = await startWavRecording();
+      setRecording(true);
+    } catch {
+      toast.error(lang === "ar" ? "تعذّر الوصول إلى الميكروفون." : "Microphone access is needed to record.");
+    }
+  };
+
+  const onFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setBusy(true);
+    try {
+      for (const file of Array.from(files)) {
+        const isAudio = file.type.startsWith("audio/") || /\.(wav|mp3|m4a|webm|mp4)$/i.test(file.name);
+        const isText = file.type.startsWith("text/") || /\.(txt|md|markdown|csv|json)$/i.test(file.name);
+        if (isAudio) {
+          appendText(await transcribeBlob(file, file.name));
+        } else if (isText) {
+          appendText((await file.text()).slice(0, 8000));
+        } else {
+          toast.error(
+            lang === "ar"
+              ? `«${file.name}» غير مدعوم — أرفق ملف نصي أو تسجيل صوتي.`
+              : `"${file.name}" isn't supported — attach a text file or a voice note.`,
+          );
+          continue;
+        }
+        setAttachments((prev) => [...prev, file.name]);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not read attachment");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const fmtViews = (n: number) => (lang === "ar" ? n.toLocaleString("ar-EG") : n.toLocaleString("en-US"));
@@ -91,6 +159,19 @@ function Index() {
             rows={3}
             className="min-h-[120px] w-full resize-none bg-transparent text-lg leading-relaxed text-brand placeholder:text-brand/30 focus:outline-none sm:text-xl"
           />
+          {attachments.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {attachments.map((name, i) => (
+                <span key={`${name}-${i}`} className="flex items-center gap-1.5 rounded-full border border-brand/20 px-3 py-1 text-[11px] text-brand/70">
+                  <Paperclip className="h-3 w-3" />
+                  <span className="max-w-[140px] truncate">{name}</span>
+                  <button type="button" onClick={() => setAttachments((p) => p.filter((_, j) => j !== i))} aria-label="remove">
+                    <X className="h-3 w-3 opacity-60 hover:opacity-100" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="mt-3 flex flex-col items-center justify-between gap-3 sm:mt-4 sm:flex-row-reverse">
             <button
               type="submit"
@@ -99,9 +180,51 @@ function Index() {
               {t("landing.hero.start")}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:-translate-x-0.5 rtl:rotate-180 rtl:group-hover:translate-x-0.5" />
             </button>
-            <span className="text-xs text-brand/40">
-              {lang === "ar" ? "اضغط Enter للبدء" : "Press Enter to start"}
-            </span>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <button
+                type="button"
+                onClick={toggleRecording}
+                disabled={busy}
+                aria-label={lang === "ar" ? "سجّل فكرتك صوتياً" : "Record your idea"}
+                className={`flex h-10 w-10 items-center justify-center rounded-full border transition disabled:opacity-50 ${
+                  recording
+                    ? "animate-pulse border-transparent bg-brand text-paper"
+                    : "border-brand/20 text-brand hover:border-brand/50"
+                }`}
+              >
+                {busy && !recording ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : recording ? (
+                  <Square className="h-3.5 w-3.5 fill-current" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+                aria-label={lang === "ar" ? "أرفق ملفاً أو تسجيلاً" : "Attach a document or voice note"}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-brand/20 text-brand transition hover:border-brand/50 disabled:opacity-50"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                accept="audio/*,.txt,.md,.markdown,.csv,.json"
+                className="hidden"
+                onChange={(e) => void onFiles(e.target.files)}
+              />
+              <span className="text-xs text-brand/40">
+                {recording
+                  ? lang === "ar" ? "جارٍ التسجيل…" : "Recording…"
+                  : busy
+                    ? lang === "ar" ? "جارٍ المعالجة…" : "Processing…"
+                    : lang === "ar" ? "تحدّث أو أرفق ملفاً" : "Speak or attach a file"}
+              </span>
+            </div>
           </div>
         </form>
 
