@@ -144,8 +144,6 @@ export type Database = {
           bio: string | null
           created_at: string
           display_name: string | null
-          style_completed_at: string | null
-          style_profile: Json | null
           updated_at: string
           user_id: string
           username: string
@@ -155,8 +153,6 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
-          style_completed_at?: string | null
-          style_profile?: Json | null
           updated_at?: string
           user_id: string
           username: string
@@ -166,11 +162,33 @@ export type Database = {
           bio?: string | null
           created_at?: string
           display_name?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      user_styles: {
+        Row: {
+          created_at: string
+          style_completed_at: string | null
+          style_profile: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          style_completed_at?: string | null
+          style_profile?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
           style_completed_at?: string | null
           style_profile?: Json | null
           updated_at?: string
           user_id?: string
-          username?: string
         }
         Relationships: []
       }

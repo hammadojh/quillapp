@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 import { generateText } from "ai";
 
-const sbp = (c: any) => c.from("profiles") as any;
+const sbp = (c: any) => c.from("user_styles") as any;
 
 export const getMyStyle = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -100,8 +100,7 @@ ${sampleText || "(none provided — infer from self-description only)"}`;
     };
 
     const { error } = await sbp(context.supabase)
-      .update({ style_profile, style_completed_at: new Date().toISOString() })
-      .eq("user_id", context.userId);
+      .upsert({ user_id: context.userId, style_profile, style_completed_at: new Date().toISOString() }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
     return { ok: true, summary };
   });
@@ -111,8 +110,7 @@ export const dismissStyleWizard = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     // Mark as "seen" without saving a style so the popup does not reappear.
     const { error } = await sbp(context.supabase)
-      .update({ style_completed_at: new Date().toISOString() })
-      .eq("user_id", context.userId);
+      .upsert({ user_id: context.userId, style_completed_at: new Date().toISOString() }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -121,8 +119,7 @@ export const clearMyStyle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { error } = await sbp(context.supabase)
-      .update({ style_profile: null })
-      .eq("user_id", context.userId);
+      .upsert({ user_id: context.userId, style_profile: null }, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
