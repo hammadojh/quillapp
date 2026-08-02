@@ -159,7 +159,7 @@ export const generateBlogPost = createServerFn({ method: "POST" })
 
     // Load the writer's style profile (if they completed the wizard) so the
     // final article echoes their voice.
-    const { data: prof } = await (context.supabase.from("profiles") as any)
+    const { data: prof } = await (context.supabase.from("user_styles") as any)
       .select("style_profile")
       .eq("user_id", context.userId)
       .maybeSingle();
