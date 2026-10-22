@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { useT, LangToggle } from "@/lib/i18n";
+import "@lovable.dev/cloud-auth-js/styles.css";
 
 function routeAfterAuth(navigate: ReturnType<typeof useNavigate>) {
   if (typeof window === "undefined") { navigate({ to: "/dashboard" }); return; }
